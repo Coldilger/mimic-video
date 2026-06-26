@@ -66,8 +66,6 @@ def interpolate_lowdim(
     actual_timestamps: np.ndarray,
     requested_timestamps: np.ndarray,
     meta: ObsMeta,
-    *,
-    is_action: bool,
 ) -> np.ndarray:
     interpolate_idxs = np.clip(requested_timestamps, actual_timestamps[0], actual_timestamps[-1])
     return interpolate_lowdim_non_delta(values, actual_timestamps, interpolate_idxs, meta["obs_type"])

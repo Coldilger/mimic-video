@@ -24,8 +24,8 @@ from cosmos_predict2.configs.defaults.data_video import register_training_and_va
 from cosmos_predict2.configs.defaults.optimizer import register_optimizer
 from cosmos_predict2.configs.defaults.scheduler import register_scheduler
 from cosmos_predict2.configs.defaults.video2world_model import register_model as register_video_model
-from cosmos_predict2.configs.defaults.world2action_model import register_model as register_action_model
-from cosmos_predict2.configs.defaults.world2action_pipe import register_pipe
+from cosmos_predict2.configs.defaults.world2action_model import register_model as register_w2a_model
+from cosmos_predict2.configs.defaults.world2action_pipe import register_pipe as register_w2a_pipe
 from imaginaire import config
 from imaginaire.utils import log
 from imaginaire.utils.config_helper import import_all_modules_from_package
@@ -43,7 +43,7 @@ class Config(config.Config):
             {"video_dataset_val": None},
             {"dataloader_train": None},
             {"dataloader_val": None},
-            {"world2action_pipe": None},
+            {"action_pipe": None},
             {"optimizer": "fusedadamw"},
             {"scheduler": "constant"},
             {"model": None},
@@ -61,7 +61,7 @@ class Config(config.Config):
 def make_config() -> Config:
     c = Config(
         model=None,
-        world2action_pipe=None,
+        action_pipe=None,
         optimizer=None,
         scheduler=None,
         data_config=None,
@@ -77,8 +77,8 @@ def make_config() -> Config:
     register_optimizer()
     register_scheduler()
     register_video_model()
-    register_action_model()
-    register_pipe()
+    register_w2a_model()
+    register_w2a_pipe()
 
     register_checkpoint()
     register_callbacks()

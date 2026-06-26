@@ -47,6 +47,7 @@ class Video2World2ActionPipeline(nn.Module):
 
         crossattn_emb, video_sigma = self.video2world_pipeline.generate_video(
             vid_input=input_vid,
+            is_video_embedding=False,
             num_latent_conditional_frames=1 if T == 1 else 2,
             prompt=prompt,
             prompt_embedding=prompt_embedding,

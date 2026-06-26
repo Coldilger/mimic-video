@@ -67,17 +67,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("in_dir", type=Path)
     ap.add_argument("out_dir", type=Path)
+    ap.add_argument("--mp4-pattern", type=str, required=True)
     ap.add_argument("--orig-fps", type=float, required=True)
+    ap.add_argument("--num-snippets", type=int, required=True)
     args = ap.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     val_videos = [
         p
-        for p in args.in_dir.rglob("libero_10_*_agentview_rgb.mp4")
+        for p in args.in_dir.rglob(args.mp4_pattern)
         if p.is_file() and p.suffix.lower() == ".mp4" and is_val_from_basename(p.name)
     ]
     random.shuffle(val_videos)
-    picks = val_videos[:10]
+    picks = val_videos[: args.num_snippets]
 
     for v in picks:
         out_path = extract_5_at_5fps_to_mp4(v, args.out_dir, args.orig_fps)

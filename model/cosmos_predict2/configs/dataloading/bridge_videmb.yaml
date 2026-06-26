@@ -1,0 +1,8 @@
+defaults:
+  - dataset: bridge
+  - policy_io: bridge_videmb
+  - _self_
+
+dataset:
+  dataset:
+    timestep_anchor: workspace_rgb_embedding

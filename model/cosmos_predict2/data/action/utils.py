@@ -8,11 +8,7 @@ from cosmos_predict2.data.action.types import NormalizationType
 T = TypeVar("T", bound=float)
 
 
-def get_paths(
-    data_dir: pathlib.Path,
-    *,
-    verbose: bool = False,
-) -> list[pathlib.Path]:
+def get_paths(data_dir: pathlib.Path) -> list[pathlib.Path]:
     paths_cache = data_dir / "paths.pkl"
 
     try:
@@ -21,7 +17,7 @@ def get_paths(
     except FileNotFoundError:
         pass
 
-    paths = sorted(data_dir.glob("**/*.zarr"))
+    paths = sorted(data_dir.glob("**/*.safetensors"))
 
     with paths_cache.open("wb") as f:
         pickle.dump(paths, f)

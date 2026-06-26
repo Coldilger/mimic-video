@@ -45,56 +45,57 @@ import logging
 import pathlib
 import pickle
 import re
+from functools import partial
+from multiprocessing import Pool
 from typing import Literal
 
 import numpy as np
+import safetensors.numpy as st
 import tqdm
-import zarr
-from numcodecs import Blosc
 from PIL import Image
 
 S_TO_NS = 1_000_000_000
 
 
-def read_image(path) -> np.ndarray:
+def _read_image(path) -> np.ndarray:
     return np.asarray(Image.open(path)).astype(np.uint8)
 
 
-def process_images(path: pathlib.Path) -> np.ndarray:
+def _process_images(path: pathlib.Path) -> np.ndarray:
     image_path = path / "images0"
     tlen = len(list((image_path).glob("im_*.jpg")))
-    return np.array([read_image(image_path / f"im_{i}.jpg") for i in range(1, tlen)])
+    return np.array([_read_image(image_path / f"im_{i}.jpg") for i in range(1, tlen)])
 
 
-def process_eef_state(path: pathlib.Path) -> np.ndarray:
+def _process_eef_state(path: pathlib.Path) -> np.ndarray:
     fp = path / "obs_dict.pkl"
     with fp.open("rb") as f:
         x = pickle.load(f)
     return x["eef_transform"][1:]
 
 
-def process_gripper_state(path: pathlib.Path) -> np.ndarray:
+def _process_gripper_state(path: pathlib.Path) -> np.ndarray:
     fp = path / "obs_dict.pkl"
     with fp.open("rb") as f:
         x = pickle.load(f)
     return x["full_state"][1:, 6].clip(0, 1)
 
 
-def process_gripper_action(path: pathlib.Path) -> np.ndarray:
+def _process_gripper_action(path: pathlib.Path) -> np.ndarray:
     fp = path / "obs_dict.pkl"
     with fp.open("rb") as f:
         x = pickle.load(f)
     return x["desired_state"][1:, 6].clip(0, 1)
 
 
-def process_time(path: pathlib.Path) -> np.ndarray:
+def _process_time(path: pathlib.Path) -> np.ndarray:
     fp = path / "obs_dict.pkl"
     with fp.open("rb") as f:
         x = np.array(pickle.load(f)["time_stamp"])
     return x[1:] - x[1]
 
 
-def process_language(path: pathlib.Path) -> str:
+def _process_language(path: pathlib.Path) -> str:
     """Avoids 3046 undesirable labels.
 
     Can only filter the most obvious issues.
@@ -166,7 +167,9 @@ def process_language(path: pathlib.Path) -> str:
         lang = lang.replace("upawrds", "upwards")
 
         # 23 episodes
-        ALLOWED = r"(?:gh|ng|th|ch|sh|ph|wh|ck|qu|bb|cc|dd|ff|gg|ll|mm|nn|pp|rr|ss|tt|zz)"
+        ALLOWED = (
+            r"(?:gh|ng|th|ch|sh|ph|wh|ck|qu|bb|cc|dd|ff|gg|ll|mm|nn|pp|rr|ss|tt|zz)"
+        )
         if re.search(rf"(?i)(?:(?!(?:{ALLOWED}))[b-df-hj-np-tv-xz\.0-9]){{4,}}", lang):
             continue
 
@@ -185,7 +188,19 @@ def process_language(path: pathlib.Path) -> str:
     return ""
 
 
-def make_zarr(path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib.Path, default_lang: str) -> Literal[0, 1]:
+def _convert(
+    path: pathlib.Path,
+    in_dir: pathlib.Path,
+    out_dir: pathlib.Path,
+    default_lang: str,
+    overwrite: bool,
+) -> Literal[0, 1]:
+    out_path = (
+        (out_dir / path.relative_to(in_dir)).with_suffix(".safetensors").resolve()
+    )
+    if out_path.exists() and not overwrite:
+        return 0
+
     if "lmdb" in str(path):
         logging.warning(f"Skipping {path} because uhhhh lmdb?")
         return 0
@@ -198,11 +213,11 @@ def make_zarr(path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib.Path, d
         logging.error(f"{path} missing policy_out.pkl")
         return 0
 
-    images = process_images(path)
-    eef_pose = process_eef_state(path)
-    gripper_pos = process_gripper_state(path)
-    gripper_action = process_gripper_action(path)
-    time_stamps = process_time(path) * S_TO_NS
+    images = _process_images(path)
+    eef_pose = _process_eef_state(path)
+    gripper_pos = _process_gripper_state(path)
+    gripper_action = _process_gripper_action(path)
+    time_stamps = _process_time(path) * S_TO_NS
 
     if not (
         0
@@ -223,127 +238,74 @@ def make_zarr(path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib.Path, d
         )
         return 0
 
-    lang = process_language(path)
+    lang = _process_language(path)
     res = 0
 
     if lang == "":
         lang = default_lang
         res = 1
 
-    out_path = (out_dir / path.relative_to(in_dir)).with_suffix(".zarr").resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    t_img = min(65, time_stamps.shape[0])
-    t_ld = min(1024, time_stamps.shape[0])
 
-    root: zarr.Group
-    with zarr.open(str(out_path), "w") as root:
-        root.create_dataset(
-            "workspace_rgb",
-            shape=images.shape,
-            dtype=np.uint8,
-            chunks=(t_img, *images.shape[1:]),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["workspace_rgb"][...] = images
-        root.create_dataset(
-            "workspace_rgb_timestamps",
-            shape=(len(time_stamps),),
-            dtype="uint64",
-            chunks=(len(time_stamps),),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["workspace_rgb_timestamps"][...] = time_stamps.copy()
+    data = {
+        "workspace_rgb": images,
+        "workspace_rgb_timestamps": time_stamps,
+        "eef_pose_lowdim": eef_pose,
+        "eef_pose_lowdim_timestamps": time_stamps.copy(),
+        "gripper_state_lowdim": gripper_pos,
+        "gripper_state_lowdim_timestamps": time_stamps.copy(),
+        "gripper_action_lowdim": gripper_action,
+        "gripper_action_lowdim_timestamps": time_stamps.copy(),
+        "language_instruction": np.frombuffer(lang.encode("utf-8"), dtype=np.uint8)[
+            None
+        ],
+        "language_instruction_timestamps": np.array([0], dtype=np.uint64),
+    }
+    st.save_file(data, out_path)
 
-        root.create_dataset(
-            "eef_pose_lowdim",
-            shape=eef_pose.shape,
-            dtype=np.float32,
-            chunks=(t_ld, *eef_pose.shape[1:]),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["eef_pose_lowdim"][...] = eef_pose
-        root.create_dataset(
-            "eef_pose_lowdim_timestamps",
-            shape=(len(time_stamps),),
-            dtype="uint64",
-            chunks=(len(time_stamps),),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["eef_pose_lowdim_timestamps"][...] = time_stamps.copy()
-
-        root.create_dataset(
-            "gripper_state_lowdim",
-            shape=gripper_pos.shape,
-            dtype=np.float32,
-            chunks=(t_ld, *gripper_pos.shape[1:]),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["gripper_state_lowdim"][...] = gripper_pos
-        root.create_dataset(
-            "gripper_state_lowdim_timestamps",
-            shape=(len(time_stamps),),
-            dtype="uint64",
-            chunks=(len(time_stamps),),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["gripper_state_lowdim_timestamps"][...] = time_stamps.copy()
-
-        root.create_dataset(
-            "gripper_action_lowdim",
-            shape=gripper_action.shape,
-            dtype=np.float32,
-            chunks=(t_ld, *gripper_action.shape[1:]),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["gripper_action_lowdim"][...] = gripper_action
-        root.create_dataset(
-            "gripper_action_lowdim_timestamps",
-            shape=(len(time_stamps),),
-            dtype="uint64",
-            chunks=(len(time_stamps),),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["gripper_action_lowdim_timestamps"][...] = time_stamps.copy()
-
-        root.create_dataset(
-            "language_instruction",
-            shape=(1,),
-            dtype=bytes,
-            chunks=(1,),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["language_instruction"][...] = np.array([lang.encode()])
-        root.create_dataset(
-            "language_instruction_timestamps",
-            shape=(1,),
-            dtype="uint64",
-            chunks=(1,),
-            compressor=Blosc(cname="lz4", clevel=1, shuffle=Blosc.BITSHUFFLE),
-        )
-        root["language_instruction_timestamps"][...] = np.array([0], dtype=np.uint64)
-
-        return res
+    return res
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "--raw-dir", required=True, type=pathlib.Path, help="Root directory with raw bridge data (jpgs and pkls)."
+        "--raw-dir",
+        required=True,
+        type=pathlib.Path,
+        help="Root directory with raw bridge data (jpgs and pkls).",
     )
-    ap.add_argument("--output-dir", required=True, type=pathlib.Path, help="Directory to write per-demo .zarr groups.")
+    ap.add_argument(
+        "--output-dir",
+        required=True,
+        type=pathlib.Path,
+        help="Directory to write per-demo .safetensors.",
+    )
     ap.add_argument(
         "--default-lang",
         type=str,
         default="",
         help="Default language instruction when label is empty or bad.",
     )
-    # all sorts of race conditions if you stress the file system too much so no parallelism
+    ap.add_argument("--num-workers", type=int, default=1)
+    ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
     paths = pathlib.Path(args.raw_dir).glob("**/raw/traj_group*/traj*")
-    num_replaced = sum(
-        make_zarr(path, in_dir=args.raw_dir, out_dir=args.output_dir, default_lang=args.default_lang)
-        for path in tqdm.tqdm(paths)
-    )
+
+    with Pool(processes=args.num_workers) as pool:
+        num_replaced = sum(
+            tqdm.tqdm(
+                pool.imap_unordered(
+                    partial(
+                        _convert,
+                        in_dir=args.raw_dir,
+                        out_dir=args.output_dir,
+                        default_lang=args.default_lang,
+                        overwrite=args.overwrite,
+                    ),
+                    paths,
+                )
+            )
+        )
 
     logging.info(f"Replaced {num_replaced} language labels.")
 

@@ -56,7 +56,7 @@ class Video2World2ActionPipeline(nn.Module):
             "num_conditional_frames": self.video2world_pipeline.tokenizer.get_latent_num_frames(T),
             "is_preprocessed": True,
         }
-        _, video_B_C_T_H_W, condition = self.video2world_pipeline.get_mimic_data_and_condition(data_batch)
+        video_B_C_T_H_W, condition = self.video2world_pipeline.get_mimic_data_and_condition(data_batch)
         video_epsilon_B_C_T_H_W = torch.randn(video_B_C_T_H_W.size(), dtype=torch.bfloat16, device="cuda")
 
         self.video2world_pipeline.scheduler.set_timesteps(num_sampling_step, device="cuda")

@@ -18,7 +18,7 @@ import cosmos_predict2.data.action.types as data_spec
 from cosmos_predict2.data.action import chunk_reader
 from cosmos_predict2.data.action import data_transforms as data_transforms_mod
 from cosmos_predict2.data.action.data_transforms import apply_data_transforms, make_data_transforms
-from cosmos_predict2.data.action.types import LieRepr, NormalizationType, ObsMeta, ObsType
+from cosmos_predict2.data.action.types import NormalizationType, ObsMeta
 from cosmos_predict2.data.action.utils import dict_apply, get_paths
 from cosmos_predict2.module import normalizer
 from cosmos_predict2.module.normalizer import array_to_stats
@@ -41,7 +41,7 @@ class MimicDataset(torch.utils.data.Dataset):
         verbose: bool = False,
     ) -> None:
         self._data_dir = pathlib.Path(data_dir)
-        self._episode_paths = get_paths(self._data_dir, verbose=verbose)
+        self._episode_paths = get_paths(self._data_dir)
 
         def get_source_component(key: str, spec: dict, prefix: str) -> tuple[str, ObsMeta]:
             source_name = source_component_names.get(f"{prefix}/{key}", key)

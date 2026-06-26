@@ -347,6 +347,8 @@ class TrainerConfig:
     run_validation: bool = True
     # How often we evaluate on the validation set.
     validation_iter: int = 999999999
+    # If it hasn't been this many minutes since the last epoch checkpoint save, skip it.
+    epoch_checkpoint_throttling_min_period_minutes: int = 0
     # Kill the process after N seconds since the last iteration (usually means dead job).
     timeout_period: int = 999999999
     # Tensor memory organization format.
@@ -367,7 +369,7 @@ class Config:
 
     # Model configs.
     model: LazyDict[ImaginaireModel]
-    world2action_pipe: DictConfig
+    action_pipe: DictConfig
     # Optimizer configs.
     optimizer: LazyDict[torch.optim.Optimizer]
     # Scheduler configs.

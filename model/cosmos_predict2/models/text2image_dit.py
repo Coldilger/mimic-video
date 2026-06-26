@@ -15,7 +15,7 @@
 
 import collections
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -273,7 +273,6 @@ class Attention(nn.Module):
         dropout: float = 0.0,
         qkv_format: str = "bshd",
         backend: str = "transformer_engine",
-        natten_params: Mapping | None = None,
     ) -> None:
         super().__init__()
         log.debug(
@@ -282,7 +281,7 @@ class Attention(nn.Module):
         )
         self.is_selfattn = context_dim is None  # self attention
 
-        if backend not in ["transformer_engine", "torch", "minimal_a2a", "natten"]:
+        if backend not in ["transformer_engine", "torch", "minimal_a2a"]:
             raise NotImplementedError(f"Unrecognized {backend=}.")
 
         self.backend = backend
@@ -937,7 +936,6 @@ class Block(nn.Module):
         adaln_lora_dim: int = 256,
         self_attention_backend: str = "transformer_engine",
         cross_attention_backend: str = "transformer_engine",
-        natten_params: Mapping | None = None,
     ):
         super().__init__()
         self.x_dim = x_dim
@@ -949,7 +947,6 @@ class Block(nn.Module):
             x_dim // num_heads,
             qkv_format="bshd",
             backend=self_attention_backend,
-            natten_params=natten_params,
         )
 
         self.layer_norm_cross_attn = nn.LayerNorm(x_dim, elementwise_affine=False, eps=1e-6)
@@ -1184,11 +1181,6 @@ class MiniTrainDIT(WeightTrainingStat):
         extra_h_extrapolation_ratio (float): Height extrapolation ratio for extra embeddings.
         extra_w_extrapolation_ratio (float): Width extrapolation ratio for extra embeddings.
         extra_t_extrapolation_ratio (float): Temporal extrapolation ratio for extra embeddings.
-        natten_parameters (Optional[List[dict]]): list of parameters for NATTEN attention backend.
-            Should include at least one key: `window_size`. Other keys such as `stride`, `dilation`,
-            and `is_causal` are optional, and fall back to NATTEN defaults.
-            Key `base_shape` may also be passed so that all other parameters (i.e. `window_size`)
-            are scaled according to input video resolution.
     """
 
     def __init__(
@@ -1227,7 +1219,6 @@ class MiniTrainDIT(WeightTrainingStat):
         extra_t_extrapolation_ratio: float = 1.0,
         rope_enable_fps_modulation: bool = True,
         sac_config: SACConfig = SACConfig(),  # noqa: B008
-        natten_parameters: dict | list = None,  # noqa: RUF013
     ) -> None:
         super().__init__()
         self.max_img_h = max_img_h
@@ -1267,26 +1258,6 @@ class MiniTrainDIT(WeightTrainingStat):
             TimestepEmbedding(model_channels, model_channels, use_adaln_lora=use_adaln_lora),
         )
 
-        if natten_parameters is not None and not isinstance(natten_parameters, Sequence):
-            raise ValueError(
-                "`natten_parameters` must either be None, or a list of the same length as the number of blocks, "
-                f"got {type(natten_parameters)=}."
-            )
-
-        if natten_parameters is not None and len(natten_parameters) != num_blocks:
-            raise ValueError(
-                "`natten_parameters` must either be None, or a list of the same length as the number of blocks, "
-                f"got {len(natten_parameters)=} != {num_blocks=}."
-            )
-
-        if natten_parameters is not None and any(
-            x is not None and not isinstance(x, Mapping) for x in natten_parameters
-        ):
-            raise ValueError(
-                "`natten_parameters` must be a list of Nones (self attention, no sparsity) or dicts "
-                f"that indicate at least a `window_size`, got {natten_parameters=}."
-            )
-
         self.blocks = nn.ModuleList(
             [
                 Block(
@@ -1296,11 +1267,8 @@ class MiniTrainDIT(WeightTrainingStat):
                     mlp_ratio=mlp_ratio,
                     use_adaln_lora=use_adaln_lora,
                     adaln_lora_dim=adaln_lora_dim,
-                    self_attention_backend=atten_backend
-                    if natten_parameters is None or natten_parameters[i] is None
-                    else "natten",
+                    self_attention_backend=atten_backend,
                     cross_attention_backend=atten_backend,
-                    natten_params=None if natten_parameters is None else natten_parameters[i],
                 )
                 for i in range(num_blocks)
             ]

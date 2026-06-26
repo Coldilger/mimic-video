@@ -35,7 +35,12 @@ mimic-video
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 cd model
+
+# for hopper
 uv sync --extra cu126
+# for blackwell
+uv sync --extra cu129
+
 source .venv/bin/activate
 ```
 
@@ -53,22 +58,30 @@ You can find an overview over the training repository (which is built on the [Co
 
 Multi-node & multi-gpu configuration is handled through [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html).
 
+### Wandb setup
+
+Fill in your wandb entity name in the [wandb callback config](./model/cosmos_predict2/configs/defaults/callbacks.py).
+
 ### Video Model Finetuning
 
 This assumes you have downloaded at least the text encoder, video tokenizer, and `v2w_pretrained_cosmos`.
 
 1. Extract videos and language instructions.
-   1. Choose a `/path/to/dataset/`.
-   2. Populate `/path/to/dataset/video/` with `ep.mp4` and `/path/to/dataset/metas/` with `ep.txt` files. Example scripts for bridge and libero are provided in [data_preprocessing/video](./data_preprocessing/video/).
-2. Precompute language embeddings in `/path/to/dataset/t5_xxl/`.
+   1. Choose a `/path/to/data/dataset/`.
+   2. Populate `/path/to/data/dataset/video/` with `ep.mp4` and `/path/to/data/dataset/metas/` with `ep.txt` files. Example scripts for bridge and libero are provided in [data_preprocessing/video](./data_preprocessing/video/). Instructions for downloading these datasets (and fixing libero) are in [Action Decoder Pretraining](#action-decoder-pretraining).
+2. Precompute language embeddings in `/path/to/data/dataset/language_embeddings/`.
 ```bash
 cd data_preprocessing/video/
-python get_t5_embeddings.py --dataset_path /path/to/dataset/
+python precompute_t5_embeddings.py --dataset-path /path/to/data/dataset/
 ```
-3. Create video finetuning config.
-   1. Add your dataset to `train_datasets` in [data_video.py](./model/cosmos_predict2/configs/defaults/data_video.py) (line 24).
+3. Optionally precompute video embeddings in `/path/to/data/dataset/video_embeddings/`.
+```bash
+python precompute_video_embeddings.py --dataset-dir /path/to/data/dataset/ --target-fps ? --num-samples-per-second ?
+```
+4. Create video finetuning config.
+   1. Add your dataset to `train_datasets` in [data_video.py](./model/cosmos_predict2/configs/defaults/data_video.py).
    2. Add your experiment hyperparameters to [video2world.py](./model/cosmos_predict2/configs/experiment/video2world.py).
-4. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [video2world.py](./model/cosmos_predict2/configs/experiment/video2world.py) from the step before.
+5. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [video2world.py](./model/cosmos_predict2/configs/experiment/video2world.py) from the step before.
 ```bash
 torchrun -m scripts.train --config=cosmos_predict2/configs/config.py -- experiment=...
 ```
@@ -82,22 +95,32 @@ This assumes you have downloaded the text encoder, video tokenizer, and the vide
 1. Download raw data and unzip.
 ```bash
 aria2c -x 16 -s 16 -c "https://rail.eecs.berkeley.edu/datasets/bridge_release/data/demos_8_17.zip"
-7z x demos_8_17.zip -obridge/
-# todo: maybe untar that one file? still don't know what it is. have to look inside.
+7z x demos_8_17.zip -obridge_raw/
+rm bridge_raw/raw/traj.tar  # a duplicate episode
+rm -r bridge_raw/raw/bridge_data_v1/berkeley/toykitchen1/flip_pot_upright_in_sink_distractors/2021-06-02_16-36-21/raw/traj_group0/traj18/  # only three images
+rm -r bridge_raw/raw/bridge_data_v2/datacol2_toykitchen1/pnp_push_sweep/04/2023-07-05_16-29-29/raw/traj_group0/traj49/  # no lowdim data
+rm -r bridge_raw/raw/bridge_data_v2/datacol2_toykitchen1/pnp_push_sweep/01/2023-07-03_15-11-24/raw/traj_group0/traj24/  # no lowdim data
 ```
-2. Convert to zarr.
+2. Convert to safetensors.
 ```bash
 cd data_preprocessing/action/
-python process_bridge.py --raw-dir ../../bridge/raw --output-dir /path/to/data/bridge/
+python process_bridge.py --raw-dir ../../bridge_raw/raw --output-dir /path/to/data/bridge/
 ```
 3. Precompute language embeddings.
 ```bash
+# If you already computed them for video model finetuning:
+python transfer_t5_bridge.py --dataset-path /path/to/data/bridge/ --language-embeddings-path /path/to/data/bridge_video/language_embeddings/
+# Otherwise:
 python precompute_t5.py --dataset-path /path/to/data/bridge/
 ```
-1. Create training config.
+4. Optionally transfer video embeddings (if you already computed them for video model finetuning).
+```bash
+python transfer_video_embeddings_bridge.py --dataset-path /path/to/data/bridge/ --video-embeddings-path /path/to/data/bridge_video/video_embeddings/
+```
+5. Create training config.
    1. Adapt dataset.data_dir in [bridge.yaml](./model/cosmos_predict2/configs/dataloading/dataset/bridge.yaml) to point to the directory containing the data you want to train on. See [DATA.md](./DATA.md) for details on the data config structure.
    2. Choose training hyperparameters (cross-attention layer, learning rate, batch size) and the video model checkpoint in [experiment/world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py). To use the same hyperparameters as the pretrained checkpoints you can select the correct configuration via the experiment name without changing code.
-2. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py) from the step before.
+6. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py) from the step before.
 ```bash
 cd ../../model
 torchrun -m scripts.train --config=cosmos_predict2/configs/config.py -- experiment=...
@@ -116,18 +139,23 @@ python benchmark_scripts/download_libero_datasets.py --use-huggingface
 cd ../../../data_preprocessing/action/
 PYTHONPATH=../../eval/libero/LIBERO/ python regenerate_libero.py --in-dir /path/to/libero/datasets/ --out-dir /path/to/libero/regenerated_datasets/
 ```
-4. Convert to zarr.
+4. Convert to safetensors.
 ```bash
-python process_libero.py --input-dir /path/to/libero/regenerated_datasets/ --output-dir /path/to/data/
+python process_libero.py --input-dir /path/to/libero/regenerated_datasets/ --output-dir /path/to/data/libero/
 ```
 5. Precompute language embeddings.
 ```bash
-python precompute_t5.py --dataset-path /path/to/data/libero_*
+# It takes ~no time
+python precompute_t5.py --dataset-path /path/to/data/libero/
 ```
-6. Create training config.
-   1. Adapt dataset.data_dir in [libero.yaml](./model/cosmos_predict2/configs/dataloading/dataset/libero.yaml) to point to the directory containing the data you want to train on. See [DATA.md](./DATA.md) for details on the data config structure. If you want to train on different LIBERO subsets, you might want to set it from the top level of the [data config](./model/cosmos_predict2/configs/dataloading/libero.yaml) (and have several of those).
+6. Optionally transfer video embeddings (if you already computed them for video model finetuning).
+```bash
+python transfer_video_embeddings_libero.py --dataset-path /path/to/data/libero/ --video-embeddings-path /path/to/data/libero_video/video_embeddings/
+```
+7. Create training config.
+   1. Adapt dataset.data_dir in the libero suite you want to train: [libero/](./model/cosmos_predict2/configs/dataloading/) to point to the directory containing the data you want to train on. See [DATA.md](./DATA.md) for details on the data config structure.
    2. Choose training hyperparameters (cross-attention layer, learning rate, batch size) and the video model checkpoint in [experiment/world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py). To use the same hyperparameters as the pretrained checkpoints you can select the correct configuration via the experiment name without changing code.
-7. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py) from the step before.
+8. Start training with [torchrun](https://docs.pytorch.org/docs/stable/elastic/run.html). The experiment name is defined in [world2action.py](./model/cosmos_predict2/configs/experiment/world2action.py) from the step before.
 ```bash
 cd ../../model
 torchrun -m scripts.train --config=cosmos_predict2/configs/config.py -- experiment=...

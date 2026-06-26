@@ -5,4 +5,4 @@ defaults:
 
 dataset:
   dataset:
-    data_dir: /path/to/libero_goal_full
+    data_dir: ...

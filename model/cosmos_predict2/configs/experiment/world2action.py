@@ -14,7 +14,7 @@ from imaginaire.lazy_config import LazyCall as L
 BASE: dict = dict(
     defaults=[
         {"override /model": MISSING},
-        {"override /world2action_pipe": MISSING},
+        {"override /action_pipe": MISSING},
         {"override /data_config": MISSING},
         {"override /optimizer": "fusedadamw"},
         {"override /ckpt_type": "standard"},
@@ -55,8 +55,12 @@ BASE: dict = dict(
         grad_accum_iter=1,
         max_iter=500_000,
         logging_iter=1_000,
+        epoch_checkpoint_throttling_min_period_minutes=30,
         validation_iter=1_000,
         run_validation=True,
+        callbacks=dict(
+            wandb=dict(project_name="mimic_video_w2a"),
+        ),
     ),
 )
 
@@ -66,7 +70,7 @@ cs.store(name="config", node=BASE)
 world2action_pipes = ACTION_DECODER_NETS.keys()
 xattn_layer_idxs = [20]
 lrs = np.logspace(-5, -3, 9)[[4]]
-bszs = [1, 128, 256]
+bszs = [4, 8, 32, 64, 128, 256]
 
 
 def get_local_batch_size(global_bsz: int) -> int:
@@ -92,8 +96,8 @@ for video_ckpt, data_config, xattn_layer_idx, lr, bsz in it.product(
     exp_name = f"w2a_{data_config}_{video_ckpt}_lr{lr:.3e}_layer{xattn_layer_idx}_bsz{bsz}"
 
     cfg = copy.deepcopy(BASE)
-    cfg["defaults"][0]["override /model"] = video_ckpt
-    cfg["defaults"][1]["override /world2action_pipe"] = pipe
+    cfg["defaults"][0]["override /model"] = f"w2a_model_{video_ckpt}"
+    cfg["defaults"][1]["override /action_pipe"] = f"w2a_{pipe}"
     cfg["defaults"][2]["override /data_config"] = data_config
     cfg["model"]["config"]["pipe_config"]["xattn_layer_idx"] = xattn_layer_idx
     cfg["optimizer"]["lr"] = lr.item()
@@ -111,5 +115,3 @@ for video_ckpt, data_config, xattn_layer_idx, lr, bsz in it.product(
         name=exp_name,
         node=cfg,
     )
-
-# TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC=7200 CUDA_DEVICE_MAX_CONNECTIONS=1 NVTE_FUSED_ATTN=0 torchrun --nproc_per_node=4 --master_port=12341 -m scripts.train --config=cosmos_predict2/configs/config.py -- experiment=...

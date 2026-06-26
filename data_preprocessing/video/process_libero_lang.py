@@ -1,20 +1,9 @@
-import hashlib
 import os
 import re
 import pathlib
 
 import tyro
 import tqdm
-
-
-def unique_dest(dest_dir: pathlib.Path, name: str, src: pathlib.Path) -> pathlib.Path:
-    p = dest_dir / name
-    if not p.exists():
-        return p
-    stem, ext = os.path.splitext(name)
-    h = hashlib.sha1(str(src).encode("utf-8")).hexdigest()[:8]
-    q = dest_dir / f"{stem}_{h}{ext}"
-    return q if not q.exists() else dest_dir / f"{stem}_{h}_1{ext}"
 
 
 def extract_name(filename: str) -> str:
@@ -40,7 +29,9 @@ def extract_name(filename: str) -> str:
     return base + "."
 
 
-def main(video_dir: pathlib.Path, out_meta: pathlib.Path):
+def main(dataset_dir: pathlib.Path):
+    video_dir = dataset_dir / "video"
+    out_meta = dataset_dir / "metas"
     out_meta.mkdir(parents=True, exist_ok=True)
     for mp4 in tqdm.tqdm(video_dir.iterdir()):
         if mp4.suffix != ".mp4":

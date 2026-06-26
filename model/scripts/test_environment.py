@@ -103,7 +103,6 @@ packages = [
     "transformer_engine",
     "megatron.core",
     ("flash_attn", "flash_attn_interface"),
-    "natten",
 ]
 packages_training = [
     "apex",

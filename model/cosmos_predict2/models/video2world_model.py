@@ -33,7 +33,6 @@ from cosmos_predict2.configs.config_video2world import (
     Video2WorldPipelineConfig,
     get_cosmos_predict2_video2world_pipeline,
 )
-from cosmos_predict2.networks.model_weights_stats import WeightTrainingStat
 from cosmos_predict2.pipelines.video2world import Video2WorldPipeline
 from cosmos_predict2.utils.checkpointer import non_strict_load_model
 from cosmos_predict2.utils.optim_instantiate import get_base_scheduler
@@ -377,19 +376,11 @@ class Predict2Video2WorldModel(ImaginaireModel):
         """
         is_image = self.input_image_key in data_batch
         is_video = self.input_video_key in data_batch
-        assert is_image != is_video, (
+        is_latent = "video_embedding" in data_batch
+        assert sum((is_image, is_video, is_latent)) == 1, (
             "Only one of the input_image_key or input_video_key should be present in the data_batch."
         )
         return is_image
-
-    def _update_train_stats(self, data_batch: dict[str, torch.Tensor]) -> None:
-        is_image = self.is_image_batch(data_batch)
-        input_key = self.input_image_key if is_image else self.input_video_key
-        if isinstance(self.pipe.dit, WeightTrainingStat):
-            if is_image:
-                self.pipe.dit.accum_image_sample_counter += data_batch[input_key].shape[0] * self.data_parallel_size
-            else:
-                self.pipe.dit.accum_video_sample_counter += data_batch[input_key].shape[0] * self.data_parallel_size
 
     def draw_training_sigma_and_epsilon(self, x0_size: torch.Size, condition: Any) -> tuple[torch.Tensor, torch.Tensor]:
         batch_size = x0_size[0]
@@ -428,7 +419,7 @@ class Predict2Video2WorldModel(ImaginaireModel):
         condition: TextCondition,
         epsilon_B_C_T_H_W: torch.Tensor,
         sigma_B_T: torch.Tensor,
-    ) -> tuple[dict, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[dict, torch.Tensor]:
         """
         Compute loss givee epsilon and sigma
 
@@ -448,9 +439,7 @@ class Predict2Video2WorldModel(ImaginaireModel):
         Returns:
             tuple: A tuple containing four elements:
                 - dict: additional data that used to debug / logging / callbacks
-                - Tensor 1: kendall loss,
-                - Tensor 2: MSE loss,
-                - Tensor 3: EDM loss
+                - Tensor: kendall loss,
 
         Raises:
             AssertionError: If the class is conditional, \
@@ -474,50 +463,22 @@ class Predict2Video2WorldModel(ImaginaireModel):
         kendall_loss = edm_loss_B_C_T_H_W
 
         with torch.no_grad():
-            var_x0 = x0_B_C_T_H_W.float().var(dim=0).mean()
-            mean_x0 = x0_B_C_T_H_W.float().mean()
-            var_eps = epsilon_B_C_T_H_W.float().var(dim=0).mean()
-            sigma_B_T = rearrange(sigma_B_T.float(), "b t -> b 1 t 1 1")
-            var_xt = (xt_B_C_T_H_W.float() / (1.0 + sigma_B_T)).var(dim=0).mean()
-            var_pred = model_pred.x0.float().var(dim=0).mean()
-
-            metrics = torch.stack(
-                [
-                    kendall_loss.mean().float(),
-                    var_x0,
-                    mean_x0,
-                    var_xt,
-                    var_eps,
-                    var_pred,
-                ],
-                dim=0,
-            ).to(x0_B_C_T_H_W.device)
+            metrics = torch.stack([kendall_loss.mean().float()], dim=0).to(x0_B_C_T_H_W.device)
             metrics = _dp_mean(metrics)
 
             if not dist.is_available() or not dist.is_initialized() or parallel_state.get_data_parallel_rank() == 0:
-                output_batch = {
-                    "loss": metrics[0].item(),
-                    "Var[x_0]": metrics[1].item(),
-                    "E[x_0]": metrics[2].item(),
-                    "Var[x_t]": metrics[3].item(),
-                    "Var[eps]": metrics[4].item(),
-                    "Var[pred]": metrics[5].item(),
-                }
+                output_batch = {"loss": metrics[0].item()}
             else:
                 output_batch = {}
-        del var_x0, var_eps, var_xt, var_pred
         gc.collect(0)
 
-        return output_batch, kendall_loss, pred_mse_B_C_T_H_W, edm_loss_B_C_T_H_W
+        return output_batch, kendall_loss
 
     def training_step(self, data_batch: dict, data_batch_idx: int) -> tuple[dict, torch.Tensor]:
         self.pipe.device = self.device
 
-        # Loss
-        self._update_train_stats(data_batch)
-
         # Get the input data to noise and denoise~(image, video) and the corresponding conditioner.
-        _, x0_B_C_T_H_W, condition = self.pipe.get_data_and_condition(data_batch)
+        x0_B_C_T_H_W, condition = self.pipe.get_data_and_condition(data_batch)
 
         # Sample pertubation noise levels and N(0, 1) noises
         sigma_B_T, epsilon_B_C_T_H_W = self.draw_training_sigma_and_epsilon(x0_B_C_T_H_W.size(), condition)
@@ -526,7 +487,7 @@ class Predict2Video2WorldModel(ImaginaireModel):
         x0_B_C_T_H_W, condition, epsilon_B_C_T_H_W, sigma_B_T = self.pipe.broadcast_split_for_model_parallelsim(
             x0_B_C_T_H_W, condition, epsilon_B_C_T_H_W, sigma_B_T
         )
-        output_batch, kendall_loss, _, _ = self.compute_loss_with_epsilon_and_sigma(
+        output_batch, kendall_loss = self.compute_loss_with_epsilon_and_sigma(
             x0_B_C_T_H_W, condition, epsilon_B_C_T_H_W, sigma_B_T
         )
 

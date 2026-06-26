@@ -398,6 +398,7 @@ class Video2WorldPipeline(BasePipeline):
     def _get_data_batch_input(
         self,
         video: torch.Tensor,
+        is_video_embedding: bool,
         prompt: str = "",
         prompt_embedding: torch.Tensor | None = None,
         negative_prompt: str = "",
@@ -419,19 +420,22 @@ class Video2WorldPipeline(BasePipeline):
         Returns:
             dict: A dictionary containing the prepared data batch, moved to the correct device and dtype.
         """
-        B, C, T, H, W = video.shape
+        _B, _C, _T, H, W = video.shape
+        if not is_video_embedding:
+            H //= self.tokenizer.spatial_compression_factor
+            W //= self.tokenizer.spatial_compression_factor
 
         self.batch_size = 1
         data_batch = {
             "dataset_name": "video_data",
-            "video": video,
+            "video_embedding" if is_video_embedding else "video": video,
             "obs/language_embedding": prompt_embedding
             if prompt_embedding is not None
             else self.encode_prompt(prompt).to(dtype=self.torch_dtype),
-            "fps": torch.randint(16, 32, (self.batch_size,)),  # Random FPS (might be used by model)
+            "fps": torch.randint(16, 32, (self.batch_size,)),  # (might be used by model) (isnt)
             "padding_mask": torch.zeros(self.batch_size, 1, H, W),  # Padding mask (assumed no padding here)
-            "num_conditional_frames": num_latent_conditional_frames,  # Specify number of conditional frames
-            "is_preprocessed": video.dtype != torch.uint8,
+            "num_conditional_frames": torch.tensor([num_latent_conditional_frames]),
+            "is_preprocessed": video.dtype != torch.uint8 or is_video_embedding,
         }
 
         # Handle negative prompts for classifier-free guidance
@@ -456,7 +460,7 @@ class Video2WorldPipeline(BasePipeline):
         if offload_to_host:
             self.text_encoder.to(device="cuda")
 
-        embeddings = self.text_encoder.encode_prompts(prompts, max_length=max_length, return_mask=return_mask)  # type: ignore
+        embeddings = self.text_encoder.encode_prompts(prompts, max_length=max_length, return_mask=return_mask)
 
         if offload_to_host:
             self.text_encoder.to(device="cpu")
@@ -589,14 +593,17 @@ class Video2WorldPipeline(BasePipeline):
 
         return x0_B_C_T_H_W, condition, epsilon_B_C_T_H_W, sigma_B_T
 
-    def get_mimic_data_and_condition(
-        self, data_batch: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor, TextCondition]:
-        raw_state = torch.concat(
-            (data_batch["obs/workspace_rgb"], data_batch["action/workspace_rgb"]),
-            dim=2,
-        )
-        latent_state = self.encode(raw_state).contiguous().float()
+    def get_mimic_data_and_condition(self, data_batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, TextCondition]:
+        if "obs/workspace_rgb_embedding" not in data_batch:
+            raw_state = torch.concat(
+                (data_batch["obs/workspace_rgb"], data_batch["action/workspace_rgb"]),
+                dim=2,
+            )
+            latent_state = self.encode(raw_state).contiguous().float()
+            num_conditional_frames = self.tokenizer.get_latent_num_frames(data_batch["obs/workspace_rgb"].shape[2])
+        else:
+            latent_state = data_batch["obs/workspace_rgb_embedding"]
+            num_conditional_frames = data_batch[f"obs/{NUM_CONDITIONAL_FRAMES_KEY}"].cpu()
 
         B, *_, H, W = latent_state.shape
         data_batch["padding_mask"] = torch.zeros(B, 1, H, W, **self.tensor_kwargs)
@@ -610,20 +617,21 @@ class Video2WorldPipeline(BasePipeline):
             gt_frames=latent_state.to(**self.tensor_kwargs),
             random_min_num_conditional_frames=self.config.min_num_conditional_frames,
             random_max_num_conditional_frames=self.config.max_num_conditional_frames,
-            num_conditional_frames=self.tokenizer.get_latent_num_frames(data_batch["obs/workspace_rgb"].shape[2]),
+            num_conditional_frames=num_conditional_frames,
         )
-        return raw_state, latent_state, condition
+        return latent_state, condition
 
-    def get_data_and_condition(
-        self, data_batch: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor, TextCondition]:
+    def get_data_and_condition(self, data_batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, TextCondition]:
         self._normalize_video_databatch_inplace(data_batch)
         self._augment_image_dim_inplace(data_batch)
         is_image_batch = self.is_image_batch(data_batch)
 
         # Latent state
-        raw_state = data_batch[self.input_image_key if is_image_batch else self.input_video_key]
-        latent_state = self.encode(raw_state).contiguous().float()
+        if "video_embedding" in data_batch:
+            latent_state = data_batch["video_embedding"]
+        else:
+            raw_state = data_batch[self.input_image_key if is_image_batch else self.input_video_key]
+            latent_state = self.encode(raw_state).contiguous().float()
 
         # Condition
         condition = self.conditioner(data_batch)
@@ -633,9 +641,9 @@ class Video2WorldPipeline(BasePipeline):
             gt_frames=latent_state.to(**self.tensor_kwargs),
             random_min_num_conditional_frames=self.config.min_num_conditional_frames,
             random_max_num_conditional_frames=self.config.max_num_conditional_frames,
-            num_conditional_frames=data_batch.get(NUM_CONDITIONAL_FRAMES_KEY, None),
+            num_conditional_frames=data_batch[NUM_CONDITIONAL_FRAMES_KEY].cpu(),
         )
-        return raw_state, latent_state, condition
+        return latent_state, condition
 
     def is_image_batch(self, data_batch: dict[str, torch.Tensor]) -> bool:
         """We hanlde two types of data_batch. One comes from a joint_dataloader where "dataset_name" can be used to differenciate image_batch and video_batch.
@@ -643,7 +651,8 @@ class Video2WorldPipeline(BasePipeline):
         """
         is_image = self.input_image_key in data_batch
         is_video = self.input_video_key in data_batch
-        assert is_image != is_video, (
+        is_latent = "video_embedding" in data_batch
+        assert sum((is_image, is_video, is_latent)) == 1, (
             "Only one of the input_image_key or input_video_key should be present in the data_batch."
         )
         return is_image
@@ -789,10 +798,7 @@ class Video2WorldPipeline(BasePipeline):
 
         The returned function is suitable for use in scenarios where a denoised state is required based on both conditioned and unconditioned inputs, with an adjustable level of guidance influence.
         """
-        if NUM_CONDITIONAL_FRAMES_KEY in data_batch:
-            num_conditional_frames = data_batch[NUM_CONDITIONAL_FRAMES_KEY]
-        else:
-            num_conditional_frames = 1
+        num_conditional_frames = data_batch[NUM_CONDITIONAL_FRAMES_KEY]
 
         if is_negative_prompt:
             condition, uncondition = self.conditioner.get_condition_with_negative_prompt(data_batch)
@@ -802,7 +808,7 @@ class Video2WorldPipeline(BasePipeline):
         is_image_batch = self.is_image_batch(data_batch)
         condition = condition.edit_data_type(DataType.IMAGE if is_image_batch else DataType.VIDEO)
         uncondition = uncondition.edit_data_type(DataType.IMAGE if is_image_batch else DataType.VIDEO)
-        _, x0, _ = self.get_data_and_condition(data_batch)
+        x0, _ = self.get_data_and_condition(data_batch)
         # override condition with inference mode; num_conditional_frames used Here!
         condition = condition.set_video_condition(
             gt_frames=x0,
@@ -866,6 +872,7 @@ class Video2WorldPipeline(BasePipeline):
         self,
         *,
         vid_input: torch.Tensor,
+        is_video_embedding: bool,
         num_latent_conditional_frames: int,
         prompt: str = "",
         prompt_embedding: torch.Tensor | None = None,
@@ -877,10 +884,12 @@ class Video2WorldPipeline(BasePipeline):
         return_context_at_step: int | None = None,
         return_all_context: bool = False,
         hidden_state_layer_idx: int | None = None,
+        decode_video: bool = True,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor] | list[torch.Tensor]:
         # Prepare the data batch with text embeddings
         data_batch = self._get_data_batch_input(
             vid_input,
+            is_video_embedding,
             prompt,
             prompt_embedding,
             negative_prompt,
@@ -890,16 +899,6 @@ class Video2WorldPipeline(BasePipeline):
         # preprocess
         self._normalize_video_databatch_inplace(data_batch)
         self._augment_image_dim_inplace(data_batch)
-        is_image_batch = self.is_image_batch(data_batch)
-        input_key = self.input_image_key if is_image_batch else self.input_video_key
-        n_sample = data_batch[input_key].shape[0]
-        _T, _H, _W = data_batch[input_key].shape[-3:]
-        state_shape = [
-            self.config.state_ch,
-            16,
-            _H // self.tokenizer.spatial_compression_factor,
-            _W // self.tokenizer.spatial_compression_factor,
-        ]
 
         x0_fn = self.get_x0_fn_from_batch(
             data_batch,
@@ -908,9 +907,26 @@ class Video2WorldPipeline(BasePipeline):
             use_cuda_graphs=use_cuda_graphs,
         )
 
+        if not is_video_embedding:
+            is_image_batch = self.is_image_batch(data_batch)
+            input_key = self.input_image_key if is_image_batch else self.input_video_key
+            n_sample = data_batch[input_key].shape[0]
+            _T, H, W = data_batch[input_key].shape[-3:]
+
+            state_shape = (
+                self.config.state_ch,
+                self.config.state_t,
+                H // self.tokenizer.spatial_compression_factor,
+                W // self.tokenizer.spatial_compression_factor,
+            )
+
+            x_shape = (n_sample, *state_shape)
+        else:
+            x_shape = data_batch["video_embedding"].shape
+
         x_sigma_max = (
             misc.arch_invariant_rand(
-                (n_sample, *tuple(state_shape)),  # ty:ignore[invalid-argument-type]
+                x_shape,  # ty:ignore[invalid-argument-type]
                 torch.float32,
                 self.tensor_kwargs["device"],
                 seed,
@@ -992,7 +1008,9 @@ class Video2WorldPipeline(BasePipeline):
             return hidden_states[hidden_state_layer_idx], sigma_min
 
         # shape: (B, C, T, H, W), possibly out of [-1, 1]
-        return self.decode(samples)
+        if decode_video:
+            return self.decode(samples)
+        return samples
 
     @torch.no_grad()
     def __call__(
@@ -1056,6 +1074,7 @@ class Video2WorldPipeline(BasePipeline):
 
         video = self.generate_video(
             vid_input=vid_input,
+            is_video_embedding=False,
             num_latent_conditional_frames=num_latent_conditional_frames,
             prompt=prompt,
             negative_prompt=negative_prompt,

@@ -17,23 +17,19 @@ import copy
 import pathlib
 
 from hydra.core.config_store import ConfigStore
+from omegaconf import MISSING
 
 from cosmos_predict2.configs.config_video2world import (
     get_cosmos_predict2_video2world_pipeline,
 )
 from cosmos_predict2.configs.defaults.ema import EMAConfig
-from cosmos_predict2.models.world2action_model import (
-    World2ActionModel as VarNoiseWorld2ActionModel,
-)
-from cosmos_predict2.models.world2action_model import (
-    World2ActionModelConfig as VarNoiseWorld2ActionModelConfig,
-)
+from cosmos_predict2.models.world2action_model import World2ActionModel, World2ActionModelConfig
 from imaginaire.lazy_config import LazyCall as L
 
-NON_FINETUNED: dict = {
+BASE: dict = {
     "trainer": {"distributed_parallelism": "ddp"},
-    "model": L(VarNoiseWorld2ActionModel)(
-        config=L(VarNoiseWorld2ActionModelConfig)(
+    "model": L(World2ActionModel)(
+        config=L(World2ActionModelConfig)(
             train_architecture="base",
             lora_rank=16,
             lora_alpha=16,
@@ -44,13 +40,8 @@ NON_FINETUNED: dict = {
             loss_scale=10.0,
             ema=EMAConfig(enabled=False),
             action_dit_path="",
-            video_dit_path=(
-                pathlib.Path(__file__).parents[3]
-                / "checkpoints"
-                / "video_backbone"
-                / "cosmos-predict2_v2w_480p_10fps.pt"
-            ),
-            pipe_config="${world2action_pipe}",
+            video_dit_path=MISSING,
+            pipe_config="${action_pipe}",
             video_pipe_config=get_cosmos_predict2_video2world_pipeline(model_size="2B", resolution="480", fps=10),
             fsdp_shard_size=0,
             data_config="${data_config}",
@@ -70,20 +61,13 @@ VIDEO_MODEL_CKPT_DIR = pathlib.Path(__file__).parents[3] / "checkpoints" / "vide
 
 def register_model() -> None:
     cs = ConfigStore.instance()
-    cs.store(
-        group="model",
-        package="_global_",
-        name="v2w_pretrained_cosmos",
-        node=NON_FINETUNED,
-    )
-
     for name in VIDEO_MODEL_CKPT_NAMES:
-        cfg = copy.deepcopy(NON_FINETUNED)
+        cfg = copy.deepcopy(BASE)
         cfg["model"]["config"]["video_dit_path"] = str((VIDEO_MODEL_CKPT_DIR / f"{name}.pt").resolve())
 
         cs.store(
             group="model",
             package="_global_",
-            name=name,
+            name=f"w2a_model_{name}",
             node=cfg,
         )

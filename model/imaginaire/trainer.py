@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import functools
 import gc
 import inspect
@@ -134,6 +135,7 @@ class ImaginaireTrainer:
                 config.job,
                 callbacks=self.callbacks,
             )
+        self._last_epoch_checkpoint_time = None
         # Initialize the timer for speed benchmarking.
         self.training_timer = misc.TrainingTimer()
         # Send a TimeoutError if a training step takes over timeout_period seconds.
@@ -185,6 +187,8 @@ class ImaginaireTrainer:
             raise ValueError(f"Unknown distributed parallelism mode: {self.config.trainer.distributed_parallelism}")
         log.info("Starting training...")
         self.callbacks.on_train_start(model, iteration=iteration)
+        if hasattr(dataloader_train.dataset, "stats_id"):
+            log.info(f"Stats id {dataloader_train.dataset.stats_id=}")
         # Initial validation.
         if self.config.trainer.run_validation and iteration == 0:
             self.validate(model, dataloader_val_cfg, iteration=iteration)
@@ -272,7 +276,11 @@ class ImaginaireTrainer:
                 if _end_training:
                     break
 
-                if min(iteration % 10_000, 10_000 - (iteration % 10_000)) < 100:
+                if (
+                    self._last_epoch_checkpoint_time is None
+                    or datetime.datetime.now() - self._last_epoch_checkpoint_time
+                    > datetime.timedelta(minutes=self.config.trainer.epoch_checkpoint_throttling_min_period_minutes)
+                ):
                     self.checkpointer.save(
                         model,
                         optimizer,
@@ -280,6 +288,8 @@ class ImaginaireTrainer:
                         grad_scaler,
                         iteration=iteration,
                     )
+                    self._last_epoch_checkpoint_time = datetime.datetime.now()
+
                 if self.config.trainer.run_validation and iteration % self.config.trainer.validation_iter != 0:
                     torch.cuda.synchronize()
                     torch.cuda.empty_cache()

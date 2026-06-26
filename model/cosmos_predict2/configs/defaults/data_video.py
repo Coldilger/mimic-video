@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset as Dataset_
 
 from cosmos_predict2.data.dataset_video import Dataset, MultiDataset
+from cosmos_predict2.data.dataset_video_latent import LatentDataset
 from cosmos_predict2.data.resumable_sampler import ResumableDistributedSampler
 from imaginaire.lazy_config import LazyCall as L
 
@@ -23,37 +24,56 @@ def get_sampler(dataset) -> ResumableDistributedSampler:
 
 cs = ConfigStore.instance()
 
+# choose Dataset or LatentDataset based on if you precomputed the video embeddings or not
 train_datasets: dict[str, Dataset_] = {
     "bridge": L(Dataset)(
         dataset_dir=...,
         num_frames=61,
-        video_size=[480, 640],
+        video_height=480,
+        video_width=640,
+        target_fps=5.0,
         is_val=False,
         obs_history=5,
         is_multi_img=True,
     ),
+    "bridge0_videmb": L(LatentDataset)(
+        dataset_dir=...,
+        include_only_with_substrings=["0.mp4"],
+        num_frames=61,
+        video_height=480,
+        video_width=640,
+        target_fps=5.0,
+        is_val=False,
+        is_multi_img=True,
+        val_ratio=0.01,
+    ),
     "libero_spatial_agentview": L(Dataset)(
         dataset_dir=...,
         num_frames=61,
-        video_size=[480, 640],
+        video_height=480,
+        video_width=640,
+        target_fps=10.0,
         data_fps=20.0,
         is_val=False,
         include_only_with_substrings=["libero_spatial", "agentview"],
         obs_history=5,
     ),
-    "libero_goal_agentview": L(Dataset)(
+    "libero_goal_agentview": L(LatentDataset)(
         dataset_dir=...,
         num_frames=61,
-        video_size=[480, 640],
-        data_fps=20.0,
+        obs_history=5,
+        video_height=480,
+        video_width=640,
+        target_fps=10.0,
         is_val=False,
         include_only_with_substrings=["libero_goal", "agentview"],
-        obs_history=5,
     ),
     "libero_object_agentview": L(Dataset)(
         dataset_dir=...,
         num_frames=61,
-        video_size=[480, 640],
+        video_height=480,
+        video_width=640,
+        target_fps=10.0,
         data_fps=20.0,
         is_val=False,
         include_only_with_substrings=["libero_object", "agentview"],

@@ -8,8 +8,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import safetensors.numpy as st
 import tqdm
-import zarr
 
 from cosmos_predict2.data.action.interpolate import get_closest_indices, get_previous_indices, interpolate_lowdim
 from cosmos_predict2.data.action.types import S_TO_NS, LieRepr, ObsMeta, ObsType
@@ -120,17 +120,17 @@ class ChunkReader:
         max_shift_duration: float,
         verbose: bool,
     ) -> tuple[np.ndarray | None, int]:
-        with zarr.open(str(episode_path), "r") as root:
+        with st.safe_open(episode_path, "np") as root:
             try:
                 min_num_timestamps = min(
-                    len(root[f"{component.split('/')[1]}_timestamps"])
+                    root.get_slice(f"{component.split('/')[1]}_timestamps").get_shape()[0]
                     for component, meta in self._data_components.items()
                     if meta["obs_type"] not in ObsType.PERSISTENT
                 )
             except KeyError as e:
                 self._logger.warning(
-                    f"Episode {episode_path} is lacking data.\n Tried to access {e}.\n"
-                    f"Available components: {root.tree()}"
+                    f"Episode {episode_path} is missing a key.\n Tried to access {e}.\n"
+                    f"Available components: {root.keys()}"
                 )
                 return None, 0
 
@@ -140,10 +140,12 @@ class ChunkReader:
                 return None, 0
 
             latest_first_timestamp = max(
-                root[f"{component.split('/')[1]}_timestamps"][0] for component in non_persistent_action_components
+                root.get_slice(f"{component.split('/')[1]}_timestamps")[0]
+                for component in non_persistent_action_components
             )
             earliest_last_timestamp = min(
-                root[f"{component.split('/')[1]}_timestamps"][-1] for component in non_persistent_action_components
+                root.get_slice(f"{component.split('/')[1]}_timestamps")[-1]
+                for component in non_persistent_action_components
             )
             end_timestep = (
                 earliest_last_timestamp
@@ -156,7 +158,7 @@ class ChunkReader:
                 timesteps = np.arange(latest_first_timestamp, end_timestep, step)
                 return timesteps, len(timesteps)
 
-            timesteps = root[f"{self._timestep_anchor}_timestamps"][...]
+            timesteps = root.get_tensor(f"{self._timestep_anchor}_timestamps")
 
             start_idx = linear_search_with_initial_guess_right(timesteps, latest_first_timestamp, 0)
             timesteps = timesteps[start_idx:]
@@ -181,7 +183,14 @@ class ChunkReader:
         self._restrict_keys = keys
 
     def _read_chunk(
-        self, root, key: str, meta: ObsMeta, step_timestamp: int, progress: float, *, is_action: bool
+        self,
+        root,
+        key: str,
+        meta: ObsMeta,
+        step_timestamp: int,
+        progress: float,
+        *,
+        is_action: bool,
     ) -> np.ndarray | None:
         if self._restrict_keys is not None and key not in self._restrict_keys:
             return None
@@ -189,7 +198,7 @@ class ChunkReader:
         shift_timesteps = meta["shift_right_by"] * S_TO_NS
         this_step_timestamp = step_timestamp + shift_timesteps
 
-        actual_timestamps = root[f"{key}_timestamps"]
+        actual_timestamps = root.get_tensor(f"{key}_timestamps")
         n_timestamps = len(actual_timestamps)
 
         pred_duration = (meta["horizon"] - 1) / meta["target_frequency"] if meta["horizon"] > 1 else 0
@@ -226,17 +235,17 @@ class ChunkReader:
 
         # horizon is 1 and there is an exact match for the right timestamp
         if start_idx == end_idx:
-            values: np.ndarray = np.expand_dims(root[key][start_idx], 0)
+            values: np.ndarray = np.expand_dims(root.get_slice(key)[start_idx], 0)
 
         elif (
             meta["obs_type"] in ObsType.INTERPOLABLE
             and typing.cast(LieRepr, meta["repr"]) in LieRepr.INDEPENDENTLY_INTERPOLABLE
         ):
-            values = root[key][start_idx : end_idx + 1]
+            values = root.get_slice(key)[start_idx : end_idx + 1]
             if values.ndim == 1:
                 values = values[:, None]
 
-            values = interpolate_lowdim(values, actual_timestamps, requested_timestamps, meta, is_action=is_action)
+            values = interpolate_lowdim(values, actual_timestamps, requested_timestamps, meta)
 
         else:
             if meta["obs_type"] in ObsType.PERSISTENT:
@@ -244,7 +253,9 @@ class ChunkReader:
             else:
                 indices = get_closest_indices(actual_timestamps, requested_timestamps)
             start_offset = indices.min()
-            values = root[key][start_idx + start_offset : start_idx + indices.max() + 1][indices - start_offset]
+            values = root.get_slice(key)[start_idx + start_offset : start_idx + indices.max() + 1][
+                indices - start_offset
+            ]
 
         if values.ndim == 1 and values.dtype != np.object_:
             values = values[:, None]
@@ -269,7 +280,7 @@ class ChunkReader:
 
         progress = step_idx / self._num_timesteps[episode_idx]
 
-        with zarr.open(self._episode_paths[episode_idx], "r") as root:
+        with st.safe_open(self._episode_paths[episode_idx], "np") as root:
             return {
                 key: vals
                 for key, meta in self._data_components.items()

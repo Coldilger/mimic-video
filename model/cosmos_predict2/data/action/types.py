@@ -8,10 +8,12 @@ S_TO_NS = 1_000_000_000
 
 class ObsType(Flag):
     RGB = auto()
-    COLOR_VISUAL = RGB
+    VIDEO_EMBEDDING = auto()
+    COLOR_VISUAL = RGB | VIDEO_EMBEDDING
 
     LANGUAGE = auto()
     LANGUAGE_EMBEDDING = auto()
+    METADATA_LABEL = auto()
 
     BINARY_GRIPPER = auto()
 
@@ -30,7 +32,7 @@ class ObsType(Flag):
     INTERPOLABLE = EUCLIDIAN | SPHERICAL | POSE_MATRIX
 
     PROPER_SUBSET = ROTATION_MATRIX | QUAT | POSE_MATRIX
-    PERSISTENT = LANGUAGE | LANGUAGE_EMBEDDING
+    PERSISTENT = LANGUAGE | LANGUAGE_EMBEDDING | METADATA_LABEL
 
     def get_category_name(self) -> str:
         if self in ObsType.COLOR_VISUAL:

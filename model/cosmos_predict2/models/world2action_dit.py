@@ -837,6 +837,7 @@ class World2ActionDIT(nn.Module):
     def init_weights(self) -> None:
         self.obs_embedder.init_weights()
         self.action_embedder.init_weights()
+        self.ctx_norm.reset_parameters()
 
         std = 1.0 / math.sqrt(self.model_channels)
         torch.nn.init.trunc_normal_(self.obs_mask_token, std=std, a=-3 * std, b=3 * std)

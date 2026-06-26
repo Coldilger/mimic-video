@@ -1,3 +1,4 @@
+import re
 import argparse
 import os
 import pathlib
@@ -6,24 +7,42 @@ from collections import defaultdict
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create a directory with random sample symlinks of Zarr episodes.")
-    parser.add_argument("source_dir", type=pathlib.Path, help="Path to the directory containing original Zarr episodes")
-    parser.add_argument("dest_dir", type=pathlib.Path, help="Path to create the new directory with symlinks")
-    parser.add_argument("--ratio", type=float, help="Fraction of episodes to sample per task.")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--dry-run", action="store_true", help="Print what would happen without creating files")
+    parser = argparse.ArgumentParser(
+        description="Create a directory with random sample symlinks of safetensors episodes."
+    )
+    parser.add_argument(
+        "source_dir",
+        type=pathlib.Path,
+        help="Path to the directory containing original safetensors episodes",
+    )
+    parser.add_argument(
+        "dest_dir",
+        type=pathlib.Path,
+        help="Path to create the new directory with symlinks",
+    )
+    parser.add_argument(
+        "--ratio", type=float, help="Fraction of episodes to sample per task."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would happen without creating files",
+    )
 
     args = parser.parse_args()
 
-    all_episodes = list(args.source_dir.glob("*.zarr"))
+    all_episodes = list(args.source_dir.glob("*.safetensors"))
 
     if not all_episodes:
-        print("No .zarr items found in source directory.")
+        print("No .safetensors items found in source directory.")
         return
 
     task_groups = defaultdict(list)
     for ep in all_episodes:
-        task_name = ep.stem.split("_demo__demo")[0]
+        task_name = re.split(r'(?=\d)', ep.stem, maxsplit=1)[0].removesuffix("_")
         task_groups[task_name].append(ep)
 
     print(f"Found {len(all_episodes)} episodes across {len(task_groups)} tasks.")
@@ -41,7 +60,9 @@ def main():
 
         selected_episodes = episodes[:sample_size]
 
-        print(f"Task '{task}': Linking {len(selected_episodes)}/{len(episodes)} episodes")
+        print(
+            f"Task '{task}': Linking {len(selected_episodes)}/{len(episodes)} episodes"
+        )
 
         for ep in selected_episodes:
             link_name = args.dest_dir / ep.name

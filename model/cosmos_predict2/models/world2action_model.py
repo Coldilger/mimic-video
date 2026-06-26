@@ -307,27 +307,16 @@ class World2ActionModel(ImaginaireModel):
         loss = F.mse_loss(vt_B_HA_A, ut_B_HA_A, reduction=self.loss_reduce) * self.loss_scale
 
         with torch.no_grad():
-            var_inst_x0 = x0_B_HA_A.float().var(dim=(1, 2)).mean()
-
             metrics = torch.stack(
-                [
-                    loss.float(),
-                    var_inst_x0,
-                ],
+                [loss.float()],
                 dim=0,
             ).to(x0_B_HA_A.device)
             metrics = _dp_mean(metrics)
 
             if not dist.is_available() or not dist.is_initialized() or parallel_state.get_data_parallel_rank() == 0:
-                output_batch = {
-                    "loss": metrics[0].item(),
-                    "Var_inst[x_0]": metrics[1].item(),
-                }
+                output_batch = {"loss": metrics[0].item()}
             else:
                 output_batch = {}
-
-        del var_inst_x0  # , var_batch_x0, var_eps, var_xt, var_ut, var_vt
-        gc.collect(0)
 
         return output_batch, loss
 
@@ -336,7 +325,7 @@ class World2ActionModel(ImaginaireModel):
         data_batch: dict,
         video_sigma_B_1: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        _, video_B_C_T_H_W, condition = self.video2world_pipe.get_mimic_data_and_condition(data_batch)
+        video_B_C_T_H_W, condition = self.video2world_pipe.get_mimic_data_and_condition(data_batch)
 
         video_epsilon_B_C_T_H_W = torch.randn(video_B_C_T_H_W.size(), **self.tensor_kwargs)
 
@@ -391,6 +380,9 @@ class World2ActionModel(ImaginaireModel):
 
     def training_step(self, data_batch: dict, iteration: int) -> tuple[dict, torch.Tensor]:
         data_batch["obs/language_embedding"] = data_batch["obs/language_embedding"].squeeze(1)
+        if "obs/workspace_rgb_embedding" in data_batch:
+            data_batch["obs/workspace_rgb_embedding"] = data_batch["obs/workspace_rgb_embedding"].squeeze(1)
+            data_batch["obs/num_conditional_frames"] = data_batch["obs/num_conditional_frames"].squeeze()
         B, _HA, A = data_batch["action/lowdim_concat"].shape
         if "obs/lowdim_concat" not in data_batch:
             data_batch["obs/lowdim_concat"] = torch.empty((B, 0, A), **self.tensor_kwargs)
@@ -448,15 +440,22 @@ class World2ActionModel(ImaginaireModel):
         gc.collect()
 
         # get mses for generated video
-        input_vid = data_batch["obs/workspace_rgb"]
-        B, C, T, H, W = input_vid.shape
-        assert T in (1, 5)
-        vid_input = torch.zeros((B, C, 61, H, W), device=input_vid.device, dtype=input_vid.dtype)
-        vid_input[:, :, :T, :, :] = input_vid
+
+        if "obs/workspace_rgb_embedding" not in data_batch:
+            input_vid = data_batch["obs/workspace_rgb"]
+            B, C, T, H, W = input_vid.shape
+            assert T in (1, 5)
+            vid_input = torch.zeros((B, C, 61, H, W), device=input_vid.device, dtype=input_vid.dtype)
+            vid_input[:, :, :T, :, :] = input_vid
+            num_latent_conditional_frames = 1 if T == 1 else 2
+        else:
+            vid_input = data_batch["obs/workspace_rgb_embedding"]
+            num_latent_conditional_frames = data_batch["obs/num_conditional_frames"].cpu()
 
         context = self.video2world_pipe.generate_video(
             vid_input=vid_input,
-            num_latent_conditional_frames=1 if T == 1 else 2,
+            is_video_embedding="obs/workspace_rgb_embedding" in data_batch,
+            num_latent_conditional_frames=num_latent_conditional_frames,
             prompt_embedding=data_batch["obs/language_embedding"],
             guidance=0.0,
             num_sampling_step=35,

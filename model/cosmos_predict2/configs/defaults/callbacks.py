@@ -14,10 +14,12 @@
 # limitations under the License.
 
 from hydra.core.config_store import ConfigStore
+from omegaconf import MISSING
 
 from cosmos_predict2.callbacks.device_monitor import DeviceMonitor
 from cosmos_predict2.callbacks.grad_clip import GradClip
 from cosmos_predict2.callbacks.iter_speed import IterSpeed
+from cosmos_predict2.callbacks.wandb import WandBCallback
 from imaginaire.callbacks.manual_gc import ManualGarbageCollection
 from imaginaire.lazy_config import PLACEHOLDER
 from imaginaire.lazy_config import LazyCall as L
@@ -32,7 +34,8 @@ BASIC_CALLBACKS = dict(
         every_n="${trainer.logging_iter}",
     ),
     manual_gc=L(ManualGarbageCollection)(every_n=5),
-    grad_clip=L(GradClip)(clip_norm=10.0),
+    grad_clip=L(GradClip)(clip_norm=10.0, log_wandb=True),
+    wandb=L(WandBCallback)(mode="online", entity_name=MISSING, run_name="${job.name}", project_name=MISSING),
 )
 
 

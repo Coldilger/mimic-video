@@ -118,7 +118,13 @@ def _language_label(ep_path: pathlib.Path) -> str:
     return ""
 
 
-def _write_episode(ep_path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib.Path, overwrite: bool) -> None:
+def _write_episode(
+    ep_path: pathlib.Path,
+    in_dir: pathlib.Path,
+    out_dir: pathlib.Path,
+    overwrite_video: bool,
+    overwrite_text: bool,
+) -> None:
     if "lmdb" in str(ep_path):
         return
 
@@ -128,11 +134,11 @@ def _write_episode(ep_path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib
 
     for img_dir in ep_path.glob("images*"):
         video_out_file = video_out_file_base.with_stem(video_out_file_base.stem + img_dir.stem[-1]).with_suffix(".mp4")
-        if video_out_file.exists() and not overwrite:
+        if video_out_file.exists() and not overwrite_video:
             continue
 
         tlen = sum(1 for _ in img_dir.glob("im_*.jpg"))
-        imgs = [img_dir / f"im_{i}.jpg" for i in range(tlen - 1)]
+        imgs = [img_dir / f"im_{i}.jpg" for i in range(1, tlen)]
         if len(imgs) < 5:
             continue
 
@@ -147,7 +153,7 @@ def _write_episode(ep_path: pathlib.Path, in_dir: pathlib.Path, out_dir: pathlib
     text_out_file = (out_dir / "metas" / out_name).with_suffix(".txt")
     text_out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    if text_out_file.exists() and not overwrite:
+    if text_out_file.exists() and not overwrite_text:
         return
 
     lang = _language_label(ep_path)
@@ -161,7 +167,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--input-dir", type=pathlib.Path, required=True, help="Root of raw bridge.")
     parser.add_argument("--output-dir", type=pathlib.Path, required=True, help="cosmos dataset dir.")
     parser.add_argument("--num-workers", type=int, default=1, help="Parallel workers.")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing mp4s")
+    parser.add_argument("--overwrite-video", action="store_true", help="Overwrite existing mp4s.")
+    parser.add_argument("--overwrite-text", action="store_true", help="Overwrite existing metas.")
     args = parser.parse_args(argv)
 
     episodes = args.input_dir.glob("**/raw/traj_group*/traj*")
@@ -175,7 +182,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                     _write_episode,
                     in_dir=args.input_dir,
                     out_dir=args.output_dir,
-                    overwrite=args.overwrite,
+                    overwrite_video=args.overwrite_video,
+                    overwrite_text=args.overwrite_text,
                 ),
                 episodes,
             )

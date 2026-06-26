@@ -25,7 +25,7 @@ from imaginaire.lazy_config import LazyCall as L
 
 BASE: dict = dict(
     defaults=[
-        {"override /model": "predict2_video2world_ddp_2b_480p_10fps"},
+        {"override /model": "v2w_model_pretrained_cosmos"},
         {"override /video_dataset_train": MISSING},
         {"override /video_dataset_val": MISSING},
         {"override /dataloader_val": "vanilla"},
@@ -57,9 +57,11 @@ BASE: dict = dict(
         grad_accum_iter=1,
         max_iter=1_000_000,
         logging_iter=1_000,
-        run_validation=False,
+        epoch_checkpoint_throttling_min_period_minutes=30,
+        run_validation=True,
         callbacks=dict(
             video_eval=L(VideoEvalCallback)(fuse_lora=MISSING),
+            wandb=dict(project_name="mimic_video_v2w"),
         ),
     ),
     optimizer=dict(
@@ -68,7 +70,7 @@ BASE: dict = dict(
 )
 
 lrs = np.logspace(-5, -3, 9)[[5]]
-bszs = [32]
+bszs = [4, 8, 32, 64, 128, 256]
 ranks = [256]
 
 
@@ -111,6 +113,9 @@ for rank in ranks:
                         )
                     )
                 cfg["trainer"]["callbacks"]["video_eval"]["fuse_lora"] = rank is not None
+
+                if "libero" in dataset:
+                    cfg["trainer"]["run_validation"] = False
 
                 cs.store(
                     group="experiment",

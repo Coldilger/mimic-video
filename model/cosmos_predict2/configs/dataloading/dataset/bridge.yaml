@@ -6,6 +6,12 @@ data_components:
   workspace_rgb:
     obs_type: ${ObsType:RGB}
     repr: null
+  workspace_rgb_embedding:
+    obs_type: ${ObsType:VIDEO_EMBEDDING}
+    repr: null
+  num_conditional_frames:
+    obs_type: ${ObsType:METADATA_LABEL}
+    repr: null
   eef_pose_lowdim:
     obs_type: ${ObsType:POSE_MATRIX}
     repr: ${LieRepr:ABSOLUTE}

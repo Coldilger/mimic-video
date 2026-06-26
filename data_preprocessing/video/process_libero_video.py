@@ -1,7 +1,5 @@
 import argparse
 import os
-from functools import partial
-from multiprocessing import Pool
 from pathlib import Path
 
 import h5py
@@ -63,11 +61,10 @@ def main():
     ap.add_argument("--h5_path", help="Path to a single .hdf5 (e.g., task_demo.hdf5)")
     ap.add_argument("--h5_dir", help="Directory containing multiple .hdf5/.h5 files")
     ap.add_argument("--out_dir", required=True, help="Directory to write MP4 files (will be created)")
-    ap.add_argument("--fps", type=int, default=10, help="Output FPS")
+    ap.add_argument("--fps", type=int, default=20, help="Output FPS")
     ap.add_argument("--rotate180", action="store_true", help="Rotate frames by 180°")
     ap.add_argument("--crf", type=int, default=18, help="x264 CRF (lower=better quality)")
     ap.add_argument("--cam_key", default="", help="Override camera key under obs/ (default: both cams)")
-    ap.add_argument("--num_workers", type=int, default=1)
     args = ap.parse_args()
 
     # Collect input files (single file OR all in a dir)
@@ -80,18 +77,14 @@ def main():
     if not h5_paths:
         raise SystemExit("No HDF5 files found. Provide --h5_path or --h5_dir.")
 
-    # Create output folder (your “album” name)
-    out_root = Path(args.out_dir)
+    out_root = Path(args.out_dir) / "video"
     out_root.mkdir(parents=True, exist_ok=True)
 
     # Which cameras to export
     cam_keys = [args.cam_key] if args.cam_key else ["agentview_rgb", "eye_in_hand_rgb"]
 
-    with Pool(processes=args.num_workers) as pool:
-        for _res in pool.imap_unordered(
-            partial(write_all_demo_videos, cam_keys=cam_keys, out_root=out_root, args=args), enumerate(h5_paths)
-        ):
-            pass
+    for h5_file_and_idx in enumerate(h5_paths):
+        write_all_demo_videos(h5_file_and_idx, cam_keys, out_root, args)
 
 
 if __name__ == "__main__":

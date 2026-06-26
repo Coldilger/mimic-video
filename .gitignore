@@ -2,6 +2,7 @@ model/checkpoints
 eval/*/results
 nohup.out
 uv.lock
-
+.vscode/
+wandb/
 __pycache__/
 .venv/
