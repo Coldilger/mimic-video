@@ -20,10 +20,9 @@ export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
 cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation
-deactivate 2>/dev/null
-source ../../../model/.venv/bin/activate
+VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
 
-python -c "
+"$VENV_PY" -c "
 from ablation_offline_probe import run_ablation_probe
 import pathlib
 run_ablation_probe(

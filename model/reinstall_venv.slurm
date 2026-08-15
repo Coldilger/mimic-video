@@ -53,11 +53,25 @@ fi
 
 cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model
 
-echo "=== uv sync --extra cu129 (matches what x86_64 actually resolves to) ==="
-uv sync --extra cu129
+# Attempt 4 (after this same script's earlier "successful" run silently
+# regressed): plain `uv sync --extra cu129` trusts already-installed
+# dist-info/RECORD metadata and skips reinstalling anything it thinks is
+# already satisfied -- but the underlying uv package-cache blobs these
+# venvs hardlink from can get purged independently of the venv itself
+# (their own inode mtime, not the venv's), so a venv can go from a
+# confirmed-working sanity check straight to `torch` missing its
+# __init__.py without any command of ours touching it. `uv cache clean`
+# + `--reinstall` forces every package to be re-fetched/re-extracted from
+# scratch instead of trusting stale links.
+echo "=== uv cache clean (purge may have silently gutted cached blobs) ==="
+uv cache clean
+echo "CACHE_CLEAN_EXIT=$?"
+
+echo "=== uv sync --extra cu129 --reinstall (matches what x86_64 actually resolves to) ==="
+uv sync --extra cu129 --reinstall
 echo "SYNC_EXIT=$?"
 
-echo "=== sanity check ==="
+echo "=== sanity check (before lerobot) ==="
 .venv/bin/python3 -c "
 import torch, numpy, scipy, transformers, accelerate
 print('torch', torch.__version__, 'cuda available:', torch.cuda.is_available())
@@ -65,5 +79,37 @@ print('numpy', numpy.__version__)
 print('scipy', scipy.__version__)
 print('transformers', transformers.__version__)
 print('accelerate', accelerate.__version__)
+"
+echo "SANITY_EXIT=$?"
+
+# Fourth attempt at getting lerobot in (needed only for
+# LeRobotDataset, to read bridge_orig_lerobot in Experiment 1's offline
+# probe -- not part of pyproject.toml, was installed ad-hoc before the
+# purge). `uv pip install --python .venv/bin/python3 ...` kept resolving
+# to the externally-managed BASE interpreter instead of this venv
+# (confirmed via "Using Python ... environment at: /home/.../cpython-3.10.19...",
+# not .venv) -- bin/activate was also a purge casualty, missing entirely,
+# so uv had no VIRTUAL_ENV to detect. Rebuilt bin/activate from a throwaway
+# `uv venv` template (repo's own README.md says to `source .venv/bin/activate`
+# before plain `uv pip install`, exactly what's done here) with VIRTUAL_ENV
+# pointed at this venv. That's also what silently corrupted torch down to
+# 2.6.0+cu126 with a missing __init__.py in the process -- one of the failed
+# --python attempts must have partially written into the shared uv cache
+# this venv hardlinks from, hence redoing the sync above first.
+echo "=== source activate + uv pip install lerobot ==="
+source .venv/bin/activate
+uv pip install --reinstall lerobot==0.3.3 av pyav
+echo "LEROBOT_INSTALL_EXIT=$?"
+
+echo "=== sanity check (after lerobot) ==="
+.venv/bin/python3 -c "
+import torch, numpy, scipy, transformers, accelerate, lerobot, av
+print('torch', torch.__version__, 'cuda available:', torch.cuda.is_available())
+print('numpy', numpy.__version__)
+print('scipy', scipy.__version__)
+print('transformers', transformers.__version__)
+print('accelerate', accelerate.__version__)
+print('lerobot', lerobot.__version__)
+print('av', av.__version__)
 "
 echo "SANITY_EXIT=$?"

@@ -26,7 +26,9 @@ export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
 cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment2_oracle
-deactivate 2>/dev/null
-source ../../../model/.venv/bin/activate
+# venv's bin/activate does not exist (uv sync doesn't create it, and it was
+# a purge casualty besides -- see memory: mimic-video venv reinstall).
+# Invoke the venv's own python directly instead of sourcing activate.
+VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
 
-python oracle_offline_probe.py
+"$VENV_PY" oracle_offline_probe.py
