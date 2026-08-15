@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/oracle-offline-%j.out
+#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment2_oracle/oracle-offline-%j.out
 
 # Offline oracle probe (Experiment B). Never touches SimplerEnv/ManiSkill2 at
 # runtime (no rendering, no simulator stepping) -- but VAMInference lives in
@@ -25,8 +25,8 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge
+cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment2_oracle
 deactivate 2>/dev/null
-source ../../model/.venv/bin/activate
+source ../../../model/.venv/bin/activate
 
 python oracle_offline_probe.py
