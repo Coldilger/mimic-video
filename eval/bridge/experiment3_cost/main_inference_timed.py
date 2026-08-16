@@ -31,9 +31,16 @@ from vam_shuffled_inference import VAMShuffledInference  # noqa: E402
 
 from timing_wrapper import add_timing  # noqa: E402
 
+# Wrapping VAMInference.step once is enough: neither VAMAblatedInference nor
+# VAMShuffledInference override step() (only __init__ / _add_image_to_history
+# respectively), so both resolve to this same wrapped method via normal
+# Python inheritance. Wrapping all three classes separately double-wraps
+# the two subclasses (add_timing(VAMAblatedInference)'s `original = cls.step`
+# would capture the ALREADY-wrapped VAMInference.step from the line above,
+# nesting a second timer around it) -- caught via each replan producing
+# exactly 2 latency samples instead of 1 (n=72 instead of the expected 36
+# for 3 episodes) in an early smoke test.
 add_timing(VAMInference)
-add_timing(VAMAblatedInference)
-add_timing(VAMShuffledInference)
 
 VARIANTS = {
     "baseline": VAMInference,
