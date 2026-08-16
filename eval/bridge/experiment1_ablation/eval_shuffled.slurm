@@ -1,10 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name=mimic_eval_shuffled
-#SBATCH --partition=short_gpuh200
+#SBATCH --partition=medium_gpuh200
 #SBATCH --gres=gpu:H200:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
+# shuffled runs the real video-diffusion backbone every replan, same cost
+# as baseline (~10s/decision per experiment3_cost's timing measurement,
+# vs ablated's ~130ms) -- the original 1h limit (copied from
+# eval_ablated.slurm, which IS nearly free) timed out at ~20/24 episodes
+# on the 60-step tasks and would fare worse on Eggplant's 120-step budget.
 #SBATCH --exclude=gnode07
 #SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-shuffled-%j.out
 
@@ -67,7 +72,7 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --rgb-overlay-path "$OVERLAY" \
   --robot-init-x $INIT_X $INIT_X 1 --robot-init-y $INIT_Y $INIT_Y 1 \
   --obj-variation-mode episode --obj-episode-range 0 24 \
-  --additional-env-save-tags "mimic_shuffled_seed${SEED}" \
+  --additional-env-save-tags "mimic_shuffled_seed${SEED}_v2" \
   --robot-init-rot-quat-center 0 0 0 1 --robot-init-rot-rpy-range 0 0 1 0 0 1 0 0 1 \
   --vam-experiment-name "$EXPERIMENT_NAME" \
   --vam-video-model-path "$VIDEO_MODEL" \
