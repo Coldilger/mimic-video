@@ -1,7 +1,8 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
-**Status: variant 1 (zero out) and variant 2 (shuffle) both implemented and
-run offline (n=120 each). Closed-loop SimplerEnv runs not yet done.**
+**Status: both variants implemented and run offline (n=120 each) and
+variant 1 (zero out) run closed-loop (all 4 tasks × 3 seeds). Variant 2
+(shuffle) closed-loop in progress.**
 
 ## What this tests
 
@@ -98,9 +99,40 @@ even ran, mimic's offline numbers are uninformative either way here — the
 closed-loop result isn't just a robustness check for mimic, it's the first
 real signal.
 
+## Results — closed-loop (variant 1, zero out)
+
+Real SimplerEnv rollouts, matching F1-VLA/LDA-1B's exact protocol (4 tasks ×
+3 seeds × 24 episodes, `eval_ablated.slurm`), 2026-08-16/17:
+
+| task | baseline | ablated (zero crossattn) |
+|---|---|---|
+| Put Carrot on Plate | 41.7% | **0.0%** |
+| Put Spoon on Towel | 45.8% | **0.0%** |
+| Stack Green Cube | 16.7% | **0.0%** |
+| Put Eggplant in Basket | 95.8% | **0.0%** |
+| **average** | **50.0%** | **0.0%** |
+
+**0 of 12 runs (all 4 tasks × 3 seeds) succeeded at all.** Every job
+completed cleanly (`EVAL_EXIT=0`, 24 episodes each, no crashes) — this is a
+real result, not a harness failure.
+
+**This is a much larger effect than F1-VLA's ablation**, which hurt every
+task but stayed well above zero (48.6% → 34.7% average, still succeeding on
+a real fraction of episodes — see F1-VLA's `experiment1_ablation/README.md`).
+mimic-video's world-model signal, once removed, doesn't just degrade
+performance — closed-loop success collapses entirely on all four tasks,
+including Eggplant, which baseline solved 95.8% of the time. Combined with
+the offline probe finding no signal at all (`ablated` ≈ `baseline` ≈
+`shuffled` on single-step L1, above) — offline L1 completely failed to
+predict this. The world-model computation is clearly causally load-bearing
+for mimic-video's closed-loop behavior, more so than for F1-VLA, even
+though nothing in the offline metric hinted at it.
+
 ## Not yet done
 
-- [ ] Run variant 1 in real closed-loop SimplerEnv (baseline vs ablated
-      success rate) — the memorization-robust test, matching F1-VLA's
-      Experiment 1 protocol.
-- [ ] Run variant 2 in closed-loop SimplerEnv.
+- [ ] Run variant 2 (shuffle) in closed-loop SimplerEnv — in progress,
+      first attempt (`--time=01:00:00`) timed out on every job since
+      shuffled runs the real, expensive video-diffusion backbone every
+      replan (same ~10s/decision as baseline, per Experiment 3 — unlike
+      ablated's ~130ms, which finished comfortably inside the same limit).
+      Resubmitted with `--time=04:00:00`.
