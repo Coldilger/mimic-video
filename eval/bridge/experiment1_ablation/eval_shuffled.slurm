@@ -42,13 +42,13 @@ case "$TASK" in
   PutCarrotOnPlateInScene-v0|PutSpoonOnTableClothInScene-v0|StackGreenCubeOnYellowCubeBakedTexInScene-v0)
     ROBOT=widowx
     SCENE=bridge_table_1_v1
-    OVERLAY=ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png
+    OVERLAY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png
     INIT_X=0.147; INIT_Y=0.028; MAX_STEPS=60
     ;;
   PutEggplantInBasketScene-v0)
     ROBOT=widowx_sink_camera_setup
     SCENE=bridge_table_1_v2
-    OVERLAY=ManiSkill2_real2sim/data/real_inpainting/bridge_sink.png
+    OVERLAY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_sink.png
     INIT_X=0.127; INIT_Y=0.06; MAX_STEPS=120
     ;;
   *)

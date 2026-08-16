@@ -36,7 +36,7 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --robot widowx --policy-setup widowx_bridge \
   --control-freq 5 --sim-freq 500 --max-episode-steps 60 \
   --env-name PutCarrotOnPlateInScene-v0 --scene-name bridge_table_1_v1 \
-  --rgb-overlay-path ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
+  --rgb-overlay-path /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
   --robot-init-x 0.147 0.147 1 --robot-init-y 0.028 0.028 1 \
   --obj-variation-mode episode --obj-episode-range 0 3 \
   --additional-env-save-tags "timing_smoke_${VARIANT}" \
