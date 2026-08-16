@@ -1,7 +1,7 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
-**Status: variant 1 (zero out) implemented and run offline (n=120). Variant
-2 (shuffle across episodes) and closed-loop SimplerEnv runs not yet done.**
+**Status: variant 1 (zero out) and variant 2 (shuffle) both implemented and
+run offline (n=120 each). Closed-loop SimplerEnv runs not yet done.**
 
 ## What this tests
 
@@ -43,49 +43,64 @@ cached, and reused as zeros/constants on every later call — only the very
 first sample in an eval run pays the cost of running the real video
 backbone.
 
-**Variant 2 (not yet implemented): shuffle `crossattn_emb` across
-episodes** — same idea as F1's variant 2, pairing each sample with a
-different episode's real activations instead of zeros, to separate "no
-signal present" from "wrong but real-shaped signal present."
+**Variant 2 (implemented): shuffle the world model's input image across
+episodes.** Unlike F1's KV-cache mechanism, mimic's video-diffusion backbone
+has exactly one input that determines `crossattn_emb`: the image history fed
+to `video2world_pipeline` (`VAMInference.step`'s `image` argument ->
+`_add_image_to_history` -> `input_vid`; proprioceptive state is built
+separately from `ee_pose_proprio`/`gripper_proprio` and never touches
+`image`). So unlike variant 1, this needs no new pipeline class at all --
+`shuffle_offline_probe.py` calls the real, unmodified `VAMInference` with a
+different episode's real frame standing in for the current one, while state
+and task description stay matched to the real, current sample. Same
+shift-by-`samples_per_episode` pairing scheme as F1's
+`kv_shuffle_offline_probe.py`, on the same (episode, t) samples as variant 1.
 
-## Results — offline probe (variant 1, zero out)
+## Results — offline probe (both variants)
 
-`ablation_offline_probe.py`: for a sampled (episode, t), predicts the action
-chunk twice on the same real logged Bridge moment — baseline (`VAMInference`,
-self-imagined future via the real video backbone) and ablated
-(`VAMAblatedInference`, `crossattn_emb` forced to zeros) — compared against
-the real logged next-step action. Same protocol/metric as
+Both `ablation_offline_probe.py` (variant 1) and `shuffle_offline_probe.py`
+(variant 2): for a sampled (episode, t), predict the action chunk on the same
+real logged Bridge moment under each condition, compared against the real
+logged next-step action. Same protocol/metric as
 `experiment2_oracle/oracle_offline_probe.py` (position L1 against the next
-observation.state, gripper L1), for direct comparability. Run 2026-08-16,
-n=120 (24 episodes × 5 samples/episode, `eval/bridge/experiment1_ablation/ablation_offline_probe.slurm`):
+observation.state, gripper L1), for direct comparability across all four
+conditions. Run 2026-08-16, n=120 each (24 episodes × 5 samples/episode,
+same (episode, t) samples for both):
 
-| metric | baseline (self-imagined) | ablated (zero crossattn) | no-motion baseline |
-|---|---|---|---|
-| position L1 | 0.0098 (sd 0.0080) | 0.0100 (sd 0.0078) | 0.0096 |
-| gripper L1 | 0.3327 | 0.3145 | — |
+| metric | baseline (self-imagined) | ablated (zero crossattn) | shuffled (wrong-episode real) | no-motion baseline |
+|---|---|---|---|---|
+| position L1 | 0.0098 (sd 0.0080) | 0.0100 (sd 0.0078) | 0.0099 (sd 0.0081) | 0.0096 |
+| gripper L1 | 0.3327 | 0.3145 | 0.3581 | — |
 
 **Interpretation:** unlike F1-VLA, where ablation clearly hurt offline L1
-(0.0272 ablated vs 0.0176 baseline vs 0.0946 zero-action baseline — see the
+and shuffling clearly recovered it (ablated 0.0272 vs baseline 0.0176 vs
+shuffled 0.0157 vs oracle 0.0157, i.e. shuffled ≈ oracle ≫ ablated — see the
 F1-VLA repo's `experiment1_ablation/README.md`), mimic-video shows
-essentially **no offline degradation** from zeroing the world-model signal.
-Position L1 for both baseline and ablated sit almost exactly at the
-no-motion baseline (0.0096) — the single-step position-prediction task
-itself is dominated by small consecutive-frame motion in Bridge, which
-limits how much this metric alone can distinguish the two conditions.
-Gripper L1 is noisy and, if anything, slightly favors ablated (likely within
-sampling noise at n=120 — an early n=4 smoke test showed the opposite gap by
-a wide margin, underscoring how unstable this specific metric is at small n).
+**all three conditions landing in the same narrow band**, indistinguishable
+from each other and from the no-motion floor (0.0096). Zeroing the signal,
+feeding it real-but-wrong-episode content, or leaving it as the model's own
+self-imagined future — none of it moves this metric. Position L1 for every
+condition sits almost exactly at the no-motion baseline — the single-step
+position-prediction task itself is dominated by small consecutive-frame
+motion in Bridge, which limits how much this metric alone can distinguish
+any of these conditions. Gripper L1 is noisy across all three (ablated
+slightly better, shuffled slightly worse than baseline, within what a
+small-n smoke test already showed is an unstable reading at this sample
+size) — no consistent ordering.
 
 This does **not** yet answer whether the world-model computation is causally
 load-bearing for mimic-video — per the same reasoning that drove F1's
 closed-loop follow-up (memorization confound: this model was fine-tuned on
 the full Bridge dataset, no held-out split), the real test is closed-loop
-SimplerEnv success rate, not offline L1 against logged actions. Not yet run.
+SimplerEnv success rate, not offline L1 against logged actions. Unlike F1,
+where the offline metric alone already told a clear story before closed-loop
+even ran, mimic's offline numbers are uninformative either way here — the
+closed-loop result isn't just a robustness check for mimic, it's the first
+real signal.
 
 ## Not yet done
 
-- [ ] Implement variant 2 (shuffle across episodes) offline probe.
 - [ ] Run variant 1 in real closed-loop SimplerEnv (baseline vs ablated
       success rate) — the memorization-robust test, matching F1-VLA's
       Experiment 1 protocol.
-- [ ] Run variant 2 in closed-loop SimplerEnv once implemented.
+- [ ] Run variant 2 in closed-loop SimplerEnv.
