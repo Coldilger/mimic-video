@@ -215,11 +215,13 @@ rebuild, so the unmodified model was re-run through the identical protocol
 (`eval_baseline.slurm`, real `VAMInference`, no Experiment 1 subclass) to
 confirm they aren't an artifact of the rebuilt environment:
 
-| task | baseline, this re-run (`stop=23`) | ablated | shuffled |
-|---|---|---|---|
-| Put Carrot on Plate | 20.8% | 0.0% | 0.0% |
-| Put Spoon on Towel | 12.5% | 0.0% | 0.0% |
-| Stack Green Cube | 4.2% | 0.0% | 0.0% |
+| task | baseline, this re-run (`stop=23`) | baseline, July sweep (table above) | ablated | shuffled |
+|---|---|---|---|---|
+| Put Carrot on Plate | 20.8% | 41.7% | 0.0% | 0.0% |
+| Put Spoon on Towel | 12.5% | 45.8% | 0.0% | 0.0% |
+| Stack Green Cube | 4.2% | 16.7% | 0.0% | 0.0% |
+| Put Eggplant in Basket | 8.3% | 95.8% | 0.0% | 0.0% |
+| **average** | **11.5%** | **50.0%** | **0.0%** | **0.0%** |
 
 The unmodified model succeeds on a real fraction of episodes on every task
 measured, through the same venv, partition, and launcher that produced the
@@ -236,3 +238,22 @@ ablated/shuffled — both at `stop=23` — and it tells the same story, with the
 same sign and the same collapse to zero. The July run's own logs are no
 longer on disk (scratch's 30-day purge), so the exact per-`stop` provenance
 of those four numbers could not be re-derived directly.
+
+**Read the ablation's magnitude off the matched column, not the July one.**
+At the settings every Experiment 1 condition actually used, baseline averages
+**11.5%**, not 50.0%. The intervention still drives every task to exactly
+zero, so the qualitative finding — mimic-video's world-model signal is
+causally load-bearing, and a wrong-episode substitute is worth no more than
+zeros — is unaffected. But the drop is 11.5 → 0.0 points, not 50 → 0, and the
+interpretation paragraphs above were written against the larger figure.
+
+**Eggplant is an outlier in this discrepancy and is not fully explained.**
+Carrot/Spoon/Stack land at 0.25-0.50× their July figures, which a
+best-of-sweep selection effect covers comfortably. Eggplant lands at 0.09×
+(8.3% vs 95.8%) — an order of magnitude, not a factor of two to four. Either
+that task is unusually sensitive to `--vam-stop-video-denoising-step`, or
+something else differs that has not been identified; with the July logs gone,
+this was not resolved. Statements elsewhere in this document that lean on
+Eggplant's 95.8% (e.g. "including Eggplant, which baseline solved 95.8% of
+the time") describe the July sweep's figure, which did not reproduce at
+`stop=23`.
