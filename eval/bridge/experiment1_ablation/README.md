@@ -1,7 +1,7 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
 **Status: complete.** Both variants run offline (n=120 each) and
-closed-loop (all 4 tasks × 3 seeds each).
+closed-loop (all 4 tasks × 24 episodes each).
 
 ## What this tests
 
@@ -100,8 +100,10 @@ real signal.
 
 ## Results — closed-loop (variant 1, zero out)
 
-Real SimplerEnv rollouts, matching F1-VLA/LDA-1B's exact protocol (4 tasks ×
-3 seeds × 24 episodes, `eval_ablated.slurm`), 2026-08-16/17:
+Real SimplerEnv rollouts, on the same 4 tasks × 24 episodes as F1-VLA/LDA-1B
+(`eval_ablated.slurm`), each condition launched 3× per task, 2026-08-16/17.
+See "Method note: the three runs per task are not three seeds" below before
+reading the per-run counts.
 
 | task | baseline | ablated (zero crossattn) |
 |---|---|---|
@@ -111,9 +113,9 @@ Real SimplerEnv rollouts, matching F1-VLA/LDA-1B's exact protocol (4 tasks ×
 | Put Eggplant in Basket | 95.8% | **0.0%** |
 | **average** | **50.0%** | **0.0%** |
 
-**0 of 12 runs (all 4 tasks × 3 seeds) succeeded at all.** Every job
-completed cleanly (`EVAL_EXIT=0`, 24 episodes each, no crashes) — this is a
-real result, not a harness failure.
+**0 of 24 episodes succeeded on any of the 4 tasks.** Every job completed
+cleanly (`EVAL_EXIT=0`, 24 episodes each, no crashes) — this is a real
+result, not a harness failure.
 
 **This is a much larger effect than F1-VLA's ablation**, which hurt every
 task but stayed well above zero (48.6% → 34.7% average, still succeeding on
@@ -143,8 +145,8 @@ Experiment 3, unlike ablated's ~130ms; resubmitted at `--time=04:00:00`),
 | Put Eggplant in Basket | 95.8% | 0.0% | **0.0%** |
 | **average** | **50.0%** | **0.0%** | **0.0%** |
 
-**Shuffled collapses just as completely as ablated — 0 of 12 runs
-succeeded.** All 24 episodes per job completed cleanly on every job (no
+**Shuffled collapses just as completely as ablated — 0 of 24 episodes
+succeeded on any task.** All 24 episodes per job completed cleanly on every job (no
 timeouts, no crashes) — a real result.
 
 **This is the sharpest contrast with F1-VLA in the whole experiment.** For
@@ -162,3 +164,75 @@ no signal at all. Where F1-VLA's world-model dependency is about the *act*
 of conditioning on real visual information, mimic-video's is about the
 *content* being right — a genuinely different failure mode between the two
 architectures, not just a difference in effect size.
+
+## Method note: the three runs per task are not three seeds
+
+Each condition above was launched three times per task, and earlier versions
+of this document described that as "3 seeds". It isn't, and the distinction
+matters for how much statistical weight these numbers carry.
+
+`SimplerEnv`'s evaluator has no seed argument at all — for *any* model. The
+recorded `Namespace(...)` of two supposedly-different-seed runs differs only
+in `additional_env_save_tags` (the output directory name); nothing about the
+environment or the policy is reseeded. Object layouts come from
+`--obj-variation-mode episode`, which is a deterministic function of the
+episode index, not of a seed.
+
+For mimic-video specifically, the pipeline is then fully deterministic:
+`model/cosmos_predict2/pipelines/video2world2action.py` takes `seed: int = 0`
+as a hardcoded default and passes it to `generate_noise`
+(`pipelines/base.py:147`, `torch.Generator(device).manual_seed(seed)`), so the
+video-diffusion backbone always denoises from the same starting noise. Three
+launches of the same task therefore produce byte-identical rollouts.
+
+Verified empirically by the baseline sanity re-run (2026-08-17,
+`eval_baseline.slurm`): PutCarrotOnPlate scored `0.20833333333333334` on both
+"seeds" — matching to 17 decimal places, with an identical per-episode
+success pattern. StackGreenCube likewise scored `0.041666666666666664` twice.
+
+**Consequence:** the effective sample size is 24 episodes per task, not 72.
+The three launches are exact repeats and add no variance information.
+
+This does not change any conclusion here — 0 successes out of 24 distinct
+episodes is still a complete collapse, on every task, against a baseline
+that succeeds on a real fraction of those same episodes (see below). What it
+changes is the precision of the claim: the effect is measured across 24
+episodes per task, not replicated across three independent runs.
+
+**This is a mimic-video-specific property, not a general SimplerEnv one.**
+F1-VLA's repeat launches *do* differ from each other (Carrot 41.7% / 25.0% /
+37.5%, Eggplant 62.5% / 58.3% / 87.5%; see `slurm/logs/seeded-*` in the
+F1-VLA repo), because F1's policy does not pin its sampling RNG. So F1's
+three runs are genuine samples of run-to-run variance even though they, too,
+were never passed an explicit seed. mimic-video could be given the same
+property by plumbing a varying seed into the pipeline call; that has not been
+done, so mimic's numbers here are single deterministic measurements.
+
+## Baseline sanity re-run (2026-08-17)
+
+The 0.0% results above were produced after this session's `model/.venv`
+rebuild, so the unmodified model was re-run through the identical protocol
+(`eval_baseline.slurm`, real `VAMInference`, no Experiment 1 subclass) to
+confirm they aren't an artifact of the rebuilt environment:
+
+| task | baseline, this re-run (`stop=23`) | ablated | shuffled |
+|---|---|---|---|
+| Put Carrot on Plate | 20.8% | 0.0% | 0.0% |
+| Put Spoon on Towel | 12.5% | 0.0% | 0.0% |
+| Stack Green Cube | 4.2% | 0.0% | 0.0% |
+
+The unmodified model succeeds on a real fraction of episodes on every task
+measured, through the same venv, partition, and launcher that produced the
+0.0% ablated/shuffled results — so those zeros are a real effect of the
+intervention, not a broken harness.
+
+**Why these differ from the baseline column in the tables above.** Those
+figures (41.7% / 45.8% / 16.7% / 95.8%) come from the original July sweep
+(`../eval.sh`), which ranged `--vam-stop-video-denoising-step` over
+`stop_steps=(0 … 35)`; the recorded numbers are from that sweep rather than
+from the fixed `stop=23` used by every Experiment 1 condition. The
+apples-to-apples comparison is therefore this re-run's column against
+ablated/shuffled — both at `stop=23` — and it tells the same story, with the
+same sign and the same collapse to zero. The July run's own logs are no
+longer on disk (scratch's 30-day purge), so the exact per-`stop` provenance
+of those four numbers could not be re-derived directly.
