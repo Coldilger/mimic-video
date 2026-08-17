@@ -1,8 +1,7 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
-**Status: both variants implemented and run offline (n=120 each) and
-variant 1 (zero out) run closed-loop (all 4 tasks × 3 seeds). Variant 2
-(shuffle) closed-loop in progress.**
+**Status: complete.** Both variants run offline (n=120 each) and
+closed-loop (all 4 tasks × 3 seeds each).
 
 ## What this tests
 
@@ -128,11 +127,38 @@ predict this. The world-model computation is clearly causally load-bearing
 for mimic-video's closed-loop behavior, more so than for F1-VLA, even
 though nothing in the offline metric hinted at it.
 
-## Not yet done
+## Results — closed-loop (variant 2, shuffle)
 
-- [ ] Run variant 2 (shuffle) in closed-loop SimplerEnv — in progress,
-      first attempt (`--time=01:00:00`) timed out on every job since
-      shuffled runs the real, expensive video-diffusion backbone every
-      replan (same ~10s/decision as baseline, per Experiment 3 — unlike
-      ablated's ~130ms, which finished comfortably inside the same limit).
-      Resubmitted with `--time=04:00:00`.
+Same protocol, `eval_shuffled.slurm` (first attempt at `--time=01:00:00`
+timed out on every job, since shuffled runs the real, expensive
+video-diffusion backbone every replan — same ~10s/decision as baseline per
+Experiment 3, unlike ablated's ~130ms; resubmitted at `--time=04:00:00`),
+2026-08-17:
+
+| task | baseline | ablated (zero) | shuffled (wrong-episode real) |
+|---|---|---|---|
+| Put Carrot on Plate | 41.7% | 0.0% | **0.0%** |
+| Put Spoon on Towel | 45.8% | 0.0% | **0.0%** |
+| Stack Green Cube | 16.7% | 0.0% | **0.0%** |
+| Put Eggplant in Basket | 95.8% | 0.0% | **0.0%** |
+| **average** | **50.0%** | **0.0%** | **0.0%** |
+
+**Shuffled collapses just as completely as ablated — 0 of 12 runs
+succeeded.** All 24 episodes per job completed cleanly on every job (no
+timeouts, no crashes) — a real result.
+
+**This is the sharpest contrast with F1-VLA in the whole experiment.** For
+F1, shuffled (real image, wrong episode) recovers success almost exactly to
+baseline on every task, both offline and closed-loop — the model apparently
+only needs *some* real visual grounding in that slot, not the right one.
+For mimic-video, shuffled is statistically indistinguishable from ablated:
+a real image from a different episode helps exactly as much as zeros do,
+i.e. not at all. Combined with the offline probe (all three conditions
+identical there too), the picture for mimic-video is unusually clean and
+severe: the action decoder isn't reacting to "is there a real-shaped signal
+present" the way F1's does — it needs the *correct, current-episode*
+`crossattn_emb` specifically, and any substitute, real or not, is as good as
+no signal at all. Where F1-VLA's world-model dependency is about the *act*
+of conditioning on real visual information, mimic-video's is about the
+*content* being right — a genuinely different failure mode between the two
+architectures, not just a difference in effect size.

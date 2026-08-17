@@ -17,6 +17,10 @@ LDA-1B forks, each with a model-specific implementation.
   world-model signal.** One hypothesis, two opposite interventions:
   suppress the foresight signal where the model normally uses it (F1,
   mimic-video), or turn it on where the model normally doesn't (LDA-1B).
+  **Done** — both variants, offline and closed-loop: zeroing *or*
+  shuffling the signal collapses closed-loop success to 0% on every task
+  (vs. F1-VLA, where shuffling recovers to near-baseline) — see
+  `experiment1_ablation/README.md`.
 - [`experiment2_oracle/`](experiment2_oracle/) — **Oracle injection.**
   Replace the predicted future with the ground-truth future, encoded
   through each model's own pipeline. Tests whether a *perfect* forecast
