@@ -178,14 +178,35 @@ count, changes nothing. Pooling design is not the bottleneck. A
 substantially-larger-episode-count re-extraction is in progress to test the
 remaining candidate (data scarcity) directly.
 
+## Update (2026-08-18): 6.25x more episodes helps in degree, not in kind
+
+Re-extracted with 250 episodes x 2 samples (v2, spatial-grid pooling) vs.
+the original 40 x 10 -- 6.25x more distinct episodes, similar total sample
+count (498 vs 400, two episodes too short to sample were skipped).
+
+| | 40 episodes (30 train / 10 val) | 250 episodes (~187 train / ~62 val) |
+|---|---|---|
+| current-pose gain | −244.2% / −246.9% | **−110.6% / −110.7%** |
+| future-pose gain | −18.6% / −9.3% | **+0.8% / +0.4%** |
+| episode-ID accuracy | 100% (chance 2.5%, 40x) | 58.9% (chance 0.4%, **147x**) |
+
+Same story as F1-VLA's independent re-run (see that repo's README): real
+improvement in *degree* -- current-pose failure roughly halves -- but not in
+*kind* -- still nowhere near recoverable, and future-pose still shows no
+real signal. Episode-identity accuracy drops in absolute terms (harder
+249-way problem vs. 30-way) but is if anything *more* extreme relative to
+chance (147x vs 40x): scene identity remains trivially easy to recover at
+this scale; pose does not. Two structurally different models, two very
+different episode-count multipliers (6.25x here, 25x for F1), same
+qualitative result -- this is now a well-triangulated finding, not a
+one-model artifact.
+
 ## Not yet done
 
-- [ ] Report the larger-episode-count re-extraction's results once complete
-      (in progress: mimic 250 episodes x 2 samples, F1 1000 episodes x 1
-      sample -- same total sample budget or less, much higher episode
-      diversity).
-- [ ] Extend to F1-VLA — its pretrained checkpoint is now downloaded
-      (`InternRobotics/F1-VLA`, 9.1G), pending the design fix above.
+- [ ] Determine whether an order-of-magnitude-larger episode count closes
+      the remaining gap, or whether the failure plateaus -- current data
+      can't distinguish "needs much more data" from "extraction caps
+      recoverability regardless of data volume."
 - [ ] Extend to LDA-1B — extraction point still open; `dynamics_loss` turned
       out to be a training-task-gated diffusion objective rather than a simple
       readout, so `vl_embs` (the shared backbone output feeding both heads) is
