@@ -161,10 +161,29 @@ won't fix it.
   recover current pose without the model
 - `compare_targets.py` / `compare_targets.slurm` — control 2, current vs future
 
+## Update (2026-08-18): the pooling fix alone doesn't help, confirmed directly
+
+`extract_features_v2.py` (spatial-grid pooling, see its docstring) was run at
+the same scale as the original (40 episodes x 10 samples) specifically to
+isolate pooling from episode count. Result: current-pose gain −244.2%
+(finetuned) / −246.9% (pretrained) -- statistically indistinguishable from
+the original mean+std-pooled design's −251.4%/−247.1%.
+
+This is now confirmed by three independent methods pointing the same
+direction: F1-VLA's extraction (no spatial pooling at all, 30 tokens kept
+individually) fails identically; LEACE-based erasure of the scene-identity
+confound (`experiment5_erasure/`) leaves pose exactly as unrecoverable;
+and now re-pooling with spatial structure preserved, at the same episode
+count, changes nothing. Pooling design is not the bottleneck. A
+substantially-larger-episode-count re-extraction is in progress to test the
+remaining candidate (data scarcity) directly.
+
 ## Not yet done
 
-- [ ] Re-extract with more episodes and/or spatially-structured pooling, then
-      re-run both controls before reading any probe number.
+- [ ] Report the larger-episode-count re-extraction's results once complete
+      (in progress: mimic 250 episodes x 2 samples, F1 1000 episodes x 1
+      sample -- same total sample budget or less, much higher episode
+      diversity).
 - [ ] Extend to F1-VLA — its pretrained checkpoint is now downloaded
       (`InternRobotics/F1-VLA`, 9.1G), pending the design fix above.
 - [ ] Extend to LDA-1B — extraction point still open; `dynamics_loss` turned
