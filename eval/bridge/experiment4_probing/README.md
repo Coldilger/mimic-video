@@ -131,6 +131,24 @@ mimic-video's representation — including the finetuned-vs-pretrained ordering
 Both are extraction-side changes, so the probe code and the controls above can
 be reused unchanged.
 
+**Update (2026-08-18): the spatial-grid pooling fix (v2 extraction, see
+`extract_features_v2.py`) is done and confirmed a controlled comparison
+(smoke test: identical targets across variants, different real features), but
+before its own controls finished, F1-VLA's copy of this experiment ran the
+identical probe+controls on features that were NEVER pooled this way at
+all — F1's real world-model signal is only 30 tokens, kept individually, no
+spatial averaging anywhere — and got the **same catastrophic current-pose
+failure** (−254%/−254% vs. mimic's −251%/−247%). That rules out "pooling
+destroyed the localized signal" as the sole explanation here too: whatever's
+wrong is shared across two structurally different extraction designs, which
+points at episode/scene diversity (the other item above), not pooling
+granularity, as the dominant lever. See F1-VLA's
+`eval/bridge/experiment4_probing/README.md`, "Cross-model finding" section,
+for the full argument. mimic's own v2-pooled features should still be run
+through the same two controls once extraction finishes, for a same-model
+before/after comparison — but the prior going in is now that pooling alone
+won't fix it.
+
 ## Files
 
 - `extract_features.py` / `extract.slurm` — frozen-feature extraction, either
