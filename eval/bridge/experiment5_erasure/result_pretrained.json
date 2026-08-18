@@ -1,0 +1,13 @@
+{
+  "variant": "pretrained",
+  "n_train_episodes": 30,
+  "n_val_episodes": 10,
+  "distortion": 0.732940711016829,
+  "episode_acc_before": 0.9733333333333334,
+  "episode_acc_after": 0.04,
+  "current_gain_before": -247.1228219209086,
+  "current_gain_after": -249.91362537767216,
+  "future_gain_before": -1.0055993519037723,
+  "future_gain_after": -1.9245478379610093,
+  "verdict": "POSE_STILL_ABSENT"
+}
