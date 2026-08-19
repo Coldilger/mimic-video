@@ -43,8 +43,10 @@ LDA-1B forks, each with a model-specific implementation.
   directly. Run, and fails the same way F1-VLA's does — current pose is
   worse than a constant predictor, more episodes narrows the gap "in degree,
   not in kind", and a nonlinear (MLP) probe doesn't recover it either — see
-  `experiment4_probing/README.md`. LDA-1B fails differently: its nonlinear
-  probe does recover current/future pose, see LDA-1B's own copy.
+  `experiment4_probing/README.md`. LDA-1B differs: its MLP recovers pose
+  where ridge fails, though Experiment 5's follow-up narrowed that to "a
+  linear direction ridge's own regularization missed" rather than a
+  genuinely nonlinear encoding — see LDA-1B's own copy.
 - [`experiment5_erasure/`](experiment5_erasure/) — **Concept erasure
   (LEACE).** Follow-up to Experiment 4's decisive control: surgically erase
   the scene/episode-identity direction from the extracted features and check
