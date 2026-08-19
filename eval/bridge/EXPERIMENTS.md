@@ -8,7 +8,7 @@ representational effect?
 
 Each experiment below attacks this question from a different angle, across
 all three models under comparison (F1-VLA, mimic-video, LDA-1B). This repo
-is mimic-video's fork; the same four experiments also live in the F1-VLA and
+is mimic-video's fork; the same five experiments also live in the F1-VLA and
 LDA-1B forks, each with a model-specific implementation.
 
 ## Experiments
@@ -40,4 +40,16 @@ LDA-1B forks, each with a model-specific implementation.
   probing.** Freezes each model's backbone and trains a small probe head to
   predict future end-effector pose from a single frozen hidden state. Tests
   the "training-time representational effect" side of the research question
-  directly.
+  directly. Run, and fails the same way F1-VLA's does — current pose is
+  worse than a constant predictor, more episodes narrows the gap "in degree,
+  not in kind" — see `experiment4_probing/README.md`.
+- [`experiment5_erasure/`](experiment5_erasure/) — **Concept erasure
+  (LEACE).** Follow-up to Experiment 4's decisive control: surgically erase
+  the scene/episode-identity direction from the extracted features and check
+  whether pose becomes recoverable in what's left. Tests whether Experiment
+  4's failure was pose information being masked by a stronger, irrelevant
+  signal, or something else. **Level A run and decisive** — masking is
+  refuted (also found the same way in F1-VLA's copy); pose recoverability
+  doesn't improve after erasure. Level B (causal downstream re-injection)
+  not started, scoped pending an extraction change that makes pose linearly
+  recoverable at all. See `experiment5_erasure/README.md`.
