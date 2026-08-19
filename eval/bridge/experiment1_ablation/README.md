@@ -257,3 +257,9 @@ this was not resolved. Statements elsewhere in this document that lean on
 Eggplant's 95.8% (e.g. "including Eggplant, which baseline solved 95.8% of
 the time") describe the July sweep's figure, which did not reproduce at
 `stop=23`.
+
+**Decision: not pursuing further.** The July logs that could have settled
+this are gone (30-day `/scratch` purge), and the qualitative finding this
+discrepancy sits next to (ablation drives every task to exactly zero) is
+unaffected by which baseline figure is correct. Documenting as an open,
+unresolved measurement anomaly rather than spending more compute chasing it.

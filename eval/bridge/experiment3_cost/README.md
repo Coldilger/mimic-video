@@ -1,6 +1,6 @@
 # Experiment 3 — Cost per decision (mimic-video)
 
-**Status: run (smoke, n=36 replans per condition). Full-scale run not yet done.**
+**Status: done. Full scale (n=48 replans/condition, 4 episodes, Carrot task, 2026-08-19), confirming the smoke-scale numbers below.**
 
 ## What this tests
 
@@ -19,7 +19,24 @@ control tick that just pops a cached action. Wrapping the base
 `VAMShuffledInference` (Experiment 1's variants) override `step()`, so both
 resolve to the same wrapped method via normal inheritance.
 
-## Results (smoke, 3 real closed-loop episodes per condition, Carrot task, 2026-08-16)
+## Results (full scale, 4 real closed-loop episodes per condition, Carrot task, 2026-08-19)
+
+| variant | n (replans) | median | p95 | mean | min | max |
+|---|---|---|---|---|---|---|
+| baseline (self-imagined) | 48 | 10226.9 ms | 10416.5 ms | 10750.0 ms | 10074.7 ms | 35424.1 ms |
+| ablated (zero crossattn) | 48 | **133.1 ms** | 344.5 ms | 901.0 ms | 132.6 ms | 36342.6 ms |
+| shuffled (wrong-episode real) | 48 | 10287.7 ms | 10506.5 ms | 10840.0 ms | 10154.0 ms | 36285.9 ms |
+
+Matches the smoke-scale numbers (below) closely — the extra episode mainly
+tightens the estimate, doesn't change it. First attempt at this run (jobs
+631081/631083) hit `CPU time limit exceeded (core dumped)`: the partition's
+default soft `RLIMIT_CPU` is 600s, which baseline/shuffled's ~10s/replan cost
+exceeds on 4 episodes even though wall-clock stayed well under the SBATCH
+`--time` limit (ablated stayed under it, being ~77x cheaper). Fixed with
+`ulimit -t unlimited` at the top of `timing_full.slurm` (hard limit is
+unlimited) and reran clean.
+
+### Results (smoke, 3 real closed-loop episodes per condition, Carrot task, 2026-08-16)
 
 | variant | n (replans) | median | p95 | mean | min | max |
 |---|---|---|---|---|---|---|
@@ -52,7 +69,9 @@ causal weight for successful action selection.
 
 ## Not yet done
 
-- [ ] Scale up from the 3-episode smoke sample to a larger/multi-task
-      latency measurement, matching F1-VLA's n=45 across 3 episodes.
-- [ ] Measure LDA-1B's Experiment 3 row (blocked on a working closed-loop
-      baseline — see `../../RESULTS.md`).
+- [x] Scale up from the 3-episode smoke sample to a larger/multi-task
+      latency measurement, matching F1-VLA's n=45 across 3 episodes (n=48,
+      2026-08-19 — see "full scale" above).
+- [x] LDA-1B's Experiment 3 row — measured 2026-08-19, via its own confirmed-
+      working RoboCasa checkpoint rather than Bridge (still 0% closed-loop).
+      See `LDA-1B/eval/bridge/experiment3_cost/README.md`.

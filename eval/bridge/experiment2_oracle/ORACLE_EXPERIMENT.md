@@ -77,6 +77,22 @@ coincidence between two separate experiments — it's the same finding,
 that the foresight computation here isn't causally load-bearing, arrived
 at through two independent routes.
 
+## Not yet done
+
+- [ ] **Closed-loop success-rate evaluation.** This repo's own paper (Section
+  III/Fig. 2) reports **closed-loop success rate**, not offline single-step
+  L1 — the number above is a cheaper proxy for the causal question, not a
+  replication of the paper's own reported metric. Getting a genuine
+  closed-loop oracle number is harder than it looks: once the model's own
+  action diverges from the logged trajectory, there is no pre-recorded "real
+  future" left to inject at the next step. The source paper (and this repo's
+  own `main_inference_hil.py` / `eval_hil.sh`, "human-in-the-loop evaluation
+  (oracle study)") handles this via live human teleoperation — expensive per
+  episode, and not yet run for any of the three models. Until this exists,
+  read the L1 numbers above as a cheap offline signal about whether the
+  mechanism *can* use real future information, not as evidence about
+  closed-loop success rate specifically.
+
 ## Caveats
 
 1. **Memorization.** See the general caveat — training had no held-out

@@ -26,12 +26,16 @@ LDA-1B forks, each with a model-specific implementation.
   through each model's own pipeline. Tests whether a *perfect* forecast
   would even be used if the model had one. Extends the case study in
   mimic-video's own paper (arXiv:2512.15692, Section III / Fig. 2) — this
-  model's own authors already ran a version of this. **Done** — see
-  `experiment2_oracle/ORACLE_EXPERIMENT.md`.
+  model's own authors already ran a version of this. **Offline probe (L1)
+  done; closed-loop success rate — the actual metric that case study
+  reports — is still outstanding**, see
+  `experiment2_oracle/ORACLE_EXPERIMENT.md`'s "Not yet done" section.
 - [`experiment3_cost/`](experiment3_cost/) — **Cost per decision.**
   Characterizes how much inference-time compute each model actually spends
   on its world-model computation, and at what latency/success-rate
-  trade-off. Context for interpreting Experiments 1 and 2.
+  trade-off. Context for interpreting Experiments 1 and 2. **Done** — full
+  scale (n=48/condition) measured 2026-08-19, see
+  `experiment3_cost/README.md`.
 - [`experiment4_probing/`](experiment4_probing/) — **Representation
   probing.** Freezes each model's backbone and trains a small probe head to
   predict future end-effector pose from a single frozen hidden state. Tests
