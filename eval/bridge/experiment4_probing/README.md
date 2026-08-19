@@ -201,13 +201,30 @@ different episode-count multipliers (6.25x here, 25x for F1), same
 qualitative result -- this is now a well-triangulated finding, not a
 one-model artifact.
 
+## Is current pose nonlinearly recoverable? (2026-08-19, cross-check from LDA-1B)
+
+While probing LDA-1B, an MLP recovered its current pose (+60.2% over
+constant) where ridge had failed badly (−229%) — raising the question of
+whether mimic's own current-pose failure is also a linear-probe artifact.
+Tested directly
+(`LDA-1B/eval/bridge/experiment4_probing/mlp_current_pose.py`, same
+`ProbeHead` architecture this repo's own `train_probe.py` already uses for
+the future target, run against this repo's own
+`features_finetuned_v2_more.npz` / `current_pose_more.npz`): **MLP
+current-pose val L1 0.172 vs. constant 0.160 — a −7.7% gain, i.e. still
+worse than guessing the mean.** Unlike LDA, nonlinearity is not the
+explanation for mimic's current-pose failure — `crossattn_emb` genuinely
+does not encode pose here, under either probe family.
+
 ## Not yet done
 
 - [ ] Determine whether an order-of-magnitude-larger episode count closes
       the remaining gap, or whether the failure plateaus -- current data
       can't distinguish "needs much more data" from "extraction caps
       recoverability regardless of data volume."
-- [ ] Extend to LDA-1B — extraction point still open; `dynamics_loss` turned
-      out to be a training-task-gated diffusion objective rather than a simple
-      readout, so `vl_embs` (the shared backbone output feeding both heads) is
-      the current candidate.
+- [x] Extend to LDA-1B — done 2026-08-19, see
+      `LDA-1B/eval/bridge/experiment4_probing/README.md`. Notably different
+      result: LDA's shared `vl_embs` backbone *does* encode both current and
+      future pose, nonlinearly (unlike F1-VLA and mimic-video's own
+      world-model-specific representations, neither of which recovers pose
+      under any probe family tried).
