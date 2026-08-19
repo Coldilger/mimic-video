@@ -67,6 +67,64 @@ consistent story: for mimic-video, the world-model computation is not just
 expensive, it's carrying most of both the compute budget *and* the
 causal weight for successful action selection.
 
+## Why is mimic ~40-77x slower than F1-VLA/LDA-1B? (2026-08-19)
+
+**Not parameter count.** Exact counts from each checkpoint's own header
+(safetensors header for F1, `map_location='meta'` load for the others — no
+weight data materialized):
+
+| model | params | latency (median) |
+|---|---|---|
+| LDA-1B | **7.21B** (bf16) | 254.7 ms |
+| F1-VLA | 4.19B (bf16) | 215.7 ms |
+| mimic-video | **2.46B** (1.96B video backbone + 0.50B action decoder, bf16) | 10226.9 ms |
+
+LDA-1B has ~3x mimic's parameter count and is ~40x faster. The relationship
+is inverted, not correlated — ruling out model size as the driver.
+
+**It's the number of full-video denoising steps, confirmed directly, not
+just plausible from reading the code.** mimic is "latent-only": the action
+decoder never sees a decoded pixel frame, only reads a hidden state from an
+intermediate transformer layer (`world2action_model.py`'s `get_crossattn_emb`,
+`xattn_layer_idx`, matching the checkpoint filename's `layer20`) via
+`return_only_hidden_states_up_to`/`return_decoded_video=False` — so being
+latent-only does skip the VAE pixel-decode step and running the transformer's
+remaining depth past that layer. What it does *not* skip is the iterative
+diffusion sampling loop itself: `num_sampling_step=35` (`stop_after_step=23`
+in our eval config), and at **every one of those steps**, the transformer
+processes the *entire* video latent's token grid — `crossattn_emb.shape` is
+`(B, T*H*W, D)` with **T·H·W = 19200 tokens** (confirmed in
+`experiment4_probing/README.md`'s own feature-shape probe), not a single
+frame's worth. Compare F1-VLA's VAR foresight: 10 scales,
+`v_patch_nums=(1,2,3,4,5,6,8,10,13,16)`, summing to only **680 tokens total
+across all 10 steps combined** (per F1-VLA's `modeling_f1.py`/`wm/vqvae.py`) —
+mimic processes ~28x more tokens *per single step* than F1 processes in its
+*entire* foresight generation, on top of running ~2.3x more steps (23 vs 10).
+
+Direct empirical test (not just consistent-with-the-code): ran the same
+baseline condition at `stop=12` (halfway), 1 episode, job 631132:
+
+| stop-steps | median latency |
+|---|---|
+| 0 (ablated) | 133.1 ms |
+| 12 | 5660.2 ms |
+| 23 (baseline) | 10226.9 ms |
+
+Linear prediction for 12 steps from the 0/23 endpoints: 5399.4 ms. Measured:
+5660.2 ms — 4.8% off, well within run-to-run noise. Slope is near-constant
+across the range (460.6 ms/step on 0→12, 415.2 ms/step on 12→23). This is a
+test that could have falsified "it's the step count" (e.g. if cost were
+dominated by a fixed setup/first-step cost, latency at stop=12 would land
+much closer to the stop=23 value than to a linear midpoint) and didn't.
+
+**Conclusion:** the ~77x gap is specific to Cosmos-Predict2's video-diffusion
+mechanism — an iterative multi-step sampling process over a full-video-length
+token grid — not to raw model size, and not eliminated by mimic's own
+latent-only tap point (that saves the pixel-decode cost, not the sampling-loop
+cost). F1-VLA's VAR and LDA-1B's absence of any foresight-sampling loop are
+both architecturally cheap for the same underlying reason: far fewer
+token-processing steps, not fewer parameters.
+
 ## Not yet done
 
 - [x] Scale up from the 3-episode smoke sample to a larger/multi-task
@@ -75,3 +133,4 @@ causal weight for successful action selection.
 - [x] LDA-1B's Experiment 3 row — measured 2026-08-19, via its own confirmed-
       working RoboCasa checkpoint rather than Bridge (still 0% closed-loop).
       See `LDA-1B/eval/bridge/experiment3_cost/README.md`.
+- [x] Explain the ~40-77x latency gap — done 2026-08-19, see above.
