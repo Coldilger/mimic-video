@@ -77,21 +77,86 @@ coincidence between two separate experiments — it's the same finding,
 that the foresight computation here isn't causally load-bearing, arrived
 at through two independent routes.
 
+## Live oracle probe (closed-loop, randomized) — preliminary, unresolved anomaly
+
+The offline probe above replays `bridge_orig_lerobot` — the exact dataset
+this checkpoint was finetuned on, with no held-out split (caveat 1 below).
+This probe reuses the identical oracle mechanism (`VAMInference`'s
+`is_hil=True` + `ingest_video()`, unmodified, on a second model instance)
+but sources it from a live, randomized SimplerEnv-Bridge rollout instead:
+object placement is randomized per episode by SimplerEnv itself (the same
+mechanism Experiment 1's own closed-loop eval already uses), so verbatim
+recall of a specific trajectory is impossible here.
+
+**Design.** A normal closed-loop rollout runs with the REAL (non-oracle)
+`VAMInference` driving the robot — pure side computation, behavior
+unaffected in principle. Every control tick, once a 12-frame future window
+is available, a second oracle-only instance is queried and its predicted
+ABSOLUTE position (composing the predicted delta with the current pose, the
+same way `VAMInference.step()` does internally) is compared against the
+REAL achieved position one step later — not against the driving policy's
+own action, since (as for F1-VLA's copy of this probe) comparing against a
+policy that only succeeds part of the time isn't a meaningful reference;
+restricted to episodes SimplerEnv scored successful.
+Implementation: `main_inference_live_oracle.py`.
+
+### Results (job 631443, task PutCarrotOnPlateInScene-v0, 24 episodes)
+
+Average success: **20.8%** (5/24).
+
+| | all samples (n=96) | successful episodes only (n=20) |
+|---|---|---|
+| oracle L1 (predicted position vs. real next position) | 0.00293 (sd 0.00169) | 0.00314 (sd 0.00185) |
+| "arm doesn't move" baseline | 0.00339 | 0.00382 |
+
+**This run is flagged, not adopted as a result yet — one number here does
+not match what's already established.** 20.8% is well below the 41.7%
+baseline already measured on this exact task and episode range
+(`eval_baseline.slurm`, see `../../RESULTS.md`). The pipeline itself ran
+clean (`EVAL_EXIT=0`, no errors), so this isn't a crash — but a ~2x success
+drop on the identical task/episode range is not yet explained. Leading
+candidate: running two full `VAMInference` instances simultaneously
+(driving + oracle, ~2 full video-diffusion backbones resident on one GPU)
+may be perturbing the driving instance through resource contention, even
+though the wrapper design (side-channel query, no coupling into the
+driving instance's own state or return value) should leave it unaffected in
+principle. **Not yet isolated.**
+
+Given this, the oracle-vs-baseline gap above (0.00314 vs 0.00382 — much
+closer together than F1-VLA's equivalent live-probe gap) should not yet be
+read as a finding. Two different things could be true independently: the
+success-rate anomaly could be a real perturbation from the side-computation
+(in which case the episode set being averaged over here isn't the same
+distribution as the 41.7%-baseline runs, and these L1 numbers are measuring
+something slightly different than intended), or it could be ordinary
+between-run variance on a task this repo's own docs already flag as noisy
+at n=24 (see the Eggplant anomaly in `../experiment1_ablation/README.md`).
+
+**Note on the metric's construction:** unlike F1-VLA's copy of this probe
+(action vs. the driving policy's own action), this one compares a predicted
+absolute position against a real physical outcome — the two models' gaps
+are not on the same scale and should not be compared to each other directly.
+
 ## Not yet done
 
-- [ ] **Closed-loop success-rate evaluation.** This repo's own paper (Section
-  III/Fig. 2) reports **closed-loop success rate**, not offline single-step
-  L1 — the number above is a cheaper proxy for the causal question, not a
-  replication of the paper's own reported metric. Getting a genuine
-  closed-loop oracle number is harder than it looks: once the model's own
-  action diverges from the logged trajectory, there is no pre-recorded "real
-  future" left to inject at the next step. The source paper (and this repo's
-  own `main_inference_hil.py` / `eval_hil.sh`, "human-in-the-loop evaluation
-  (oracle study)") handles this via live human teleoperation — expensive per
-  episode, and not yet run for any of the three models. Until this exists,
-  read the L1 numbers above as a cheap offline signal about whether the
-  mechanism *can* use real future information, not as evidence about
-  closed-loop success rate specifically.
+- [ ] **Resolve the success-rate anomaly** before trusting the table above:
+  re-run the same 24-episode Carrot range through the plain (non-oracle-
+  wrapped) `eval_baseline.slurm` path to check whether 41.7% reproduces on
+  this exact venv/checkpoint/day, or whether it's also lower — this isolates
+  whether the oracle side-computation is perturbing the driving model.
+- [ ] **Closed-loop success-rate evaluation with the oracle actually
+  driving the robot** (not just a side-channel query). This repo's own paper
+  (Section III/Fig. 2) reports **closed-loop success rate**, not offline/live
+  single-step L1 — everything above (both probes) is a cheaper proxy for the
+  causal question, not a replication of the paper's own reported metric.
+  Getting a genuine closed-loop oracle number is harder than it looks: once
+  the model's own action diverges from the logged trajectory, there is no
+  pre-recorded "real future" left to inject at the next step. The source
+  paper (and this repo's own `main_inference_hil.py` / `eval_hil.sh`,
+  "human-in-the-loop evaluation (oracle study)") handles this via live human
+  teleoperation — expensive per episode, and not yet run for any of the
+  three models.
+- [ ] Seed repeats once the anomaly above is resolved.
 
 ## Caveats
 

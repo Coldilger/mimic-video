@@ -27,7 +27,13 @@ LDA-1B forks, each with a model-specific implementation.
   would even be used if the model had one. Extends the case study in
   mimic-video's own paper (arXiv:2512.15692, Section III / Fig. 2) — this
   model's own authors already ran a version of this. **Offline probe (L1)
-  done; closed-loop success rate — the actual metric that case study
+  done.** A live, randomized-rollout version of the same probe also now
+  exists (n=24 episodes) but is flagged **preliminary** — success rate on
+  that run (20.8%) doesn't match the already-established 41.7% baseline for
+  the same task/episode range, not yet explained (possibly the parallel
+  oracle model instance perturbing the driving model via resource
+  contention — not yet isolated). **Closed-loop success rate with the
+  oracle actually driving the robot — the actual metric that case study
   reports — is still outstanding**, see
   `experiment2_oracle/ORACLE_EXPERIMENT.md`'s "Not yet done" section.
 - [`experiment3_cost/`](experiment3_cost/) — **Cost per decision.**
