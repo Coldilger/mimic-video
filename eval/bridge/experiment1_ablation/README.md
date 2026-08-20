@@ -104,9 +104,24 @@ Same protocol, `eval_shuffled.slurm` (first attempt at `--time=01:00:00`
 timed out on every job, since shuffled runs the real, expensive
 video-diffusion backbone every replan — same ~10s/decision as baseline per
 Experiment 3, unlike ablated's ~130ms; resubmitted at `--time=04:00:00`),
-2026-08-17:
+2026-08-17. Implementation: `main_inference_shuffled.py` ->
+`VAMShuffledInference`, which overrides `_add_image_to_history` (the only
+entry point `VAMInference.step()` uses to push an observed frame) to
+discard the real frame and push one drawn from a 64-frame pool instead.
 
-| task | baseline | ablated (zero) | shuffled (wrong-episode real) |
+**Precisely what "wrong episode" means here (verified against the code,
+2026-08-21, same check run against F1-VLA's copy of this mechanism — see
+that repo's own README): the pool (`_load_frame_pool`) is built once via
+`rng.choice(meta.total_episodes, size=64, replace=False)`
+(`np.random.default_rng(seed=123)`) over every episode in the entire
+`bridge_orig_lerobot` dataset, no task filtering — while evaluating Carrot,
+the substituted frame can come from Spoon, Stack, or Eggplant (a different
+scene, and for Eggplant a different camera rig) just as easily as from a
+different Carrot episode. A fresh index is drawn from this pool on every
+control step (`self._shuffle_rng.integers(...)`, seed 123), not fixed once
+per episode.**
+
+| task | baseline | ablated (zero) | shuffled (wrong episode/task real) |
 |---|---|---|---|
 | Put Carrot on Plate | 41.7% | 0.0% | **0.0%** |
 | Put Spoon on Towel | 45.8% | 0.0% | **0.0%** |
@@ -119,11 +134,12 @@ succeeded on any task.** All 24 episodes per job completed cleanly on every job 
 timeouts, no crashes) — a real result.
 
 **This is the sharpest contrast with F1-VLA in the whole experiment.** For
-F1, shuffled (real image, wrong episode) recovers success almost exactly to
+F1, shuffled (real image, wrong episode, and — per the pool mechanism above
+— often a wrong task/camera rig too) recovers success almost exactly to
 baseline on every task, closed-loop — the model apparently only needs
 *some* real visual grounding in that slot, not the right one.
 For mimic-video, shuffled is statistically indistinguishable from ablated:
-a real image from a different episode helps exactly as much as zeros do,
+a real image from a different episode (or a different task entirely) helps exactly as much as zeros do,
 i.e. not at all. The picture for mimic-video is unusually clean and
 severe: the action decoder isn't reacting to "is there a real-shaped signal
 present" the way F1's does — it needs the *correct, current-episode*
@@ -231,3 +247,16 @@ this are gone (30-day `/scratch` purge), and the qualitative finding this
 discrepancy sits next to (ablation drives every task to exactly zero) is
 unaffected by which baseline figure is correct. Documenting as an open,
 unresolved measurement anomaly rather than spending more compute chasing it.
+
+## Not yet done
+
+- [ ] **Confound not yet separated:** same as F1-VLA's copy of this
+      experiment — the shuffle pool draws from the entire
+      `bridge_orig_lerobot` dataset with no task filtering (verified
+      2026-08-21), so "wrong episode, same task" and "wrong task entirely"
+      are mixed into one condition. Given mimic already collapses to 0%
+      under this mixed condition, a same-task-only variant could only
+      sharpen the finding (rule out "maybe a same-task wrong episode would
+      have partially worked"), not weaken it — lower priority than F1's
+      version of this gap, where the direction of a possible correction
+      actually matters.
