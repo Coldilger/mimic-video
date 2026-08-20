@@ -1,7 +1,9 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
-**Status: complete.** Both variants run offline (n=120 each) and
-closed-loop (all 4 tasks × 24 episodes each).
+**Status: complete.** Both variants run closed-loop (all 4 tasks × 24
+episodes each) — the decisive result. (An offline probe also ran first;
+retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable
+result, see below.)
 
 ## What this tests
 
@@ -56,47 +58,17 @@ and task description stay matched to the real, current sample. Same
 shift-by-`samples_per_episode` pairing scheme as F1's
 `kv_shuffle_offline_probe.py`, on the same (episode, t) samples as variant 1.
 
-## Results — offline probe (both variants)
+## Offline probe (both variants) — retired to backlog
 
-Both `ablation_offline_probe.py` (variant 1) and `shuffle_offline_probe.py`
-(variant 2): for a sampled (episode, t), predict the action chunk on the same
-real logged Bridge moment under each condition, compared against the real
-logged next-step action. Same protocol/metric as
-`experiment2_oracle/oracle_offline_probe.py` (position L1 against the next
-observation.state, gripper L1), for direct comparability across all four
-conditions. Run 2026-08-16, n=120 each (24 episodes × 5 samples/episode,
-same (episode, t) samples for both):
-
-| metric | baseline (self-imagined) | ablated (zero crossattn) | shuffled (wrong-episode real) | no-motion baseline |
-|---|---|---|---|---|
-| position L1 | 0.0098 (sd 0.0080) | 0.0100 (sd 0.0078) | 0.0099 (sd 0.0081) | 0.0096 |
-| gripper L1 | 0.3327 | 0.3145 | 0.3581 | — |
-
-**Interpretation:** unlike F1-VLA, where ablation clearly hurt offline L1
-and shuffling clearly recovered it (ablated 0.0272 vs baseline 0.0176 vs
-shuffled 0.0157 vs oracle 0.0157, i.e. shuffled ≈ oracle ≫ ablated — see the
-F1-VLA repo's `experiment1_ablation/README.md`), mimic-video shows
-**all three conditions landing in the same narrow band**, indistinguishable
-from each other and from the no-motion floor (0.0096). Zeroing the signal,
-feeding it real-but-wrong-episode content, or leaving it as the model's own
-self-imagined future — none of it moves this metric. Position L1 for every
-condition sits almost exactly at the no-motion baseline — the single-step
-position-prediction task itself is dominated by small consecutive-frame
-motion in Bridge, which limits how much this metric alone can distinguish
-any of these conditions. Gripper L1 is noisy across all three (ablated
-slightly better, shuffled slightly worse than baseline, within what a
-small-n smoke test already showed is an unstable reading at this sample
-size) — no consistent ordering.
-
-This does **not** yet answer whether the world-model computation is causally
-load-bearing for mimic-video — per the same reasoning that drove F1's
-closed-loop follow-up (memorization confound: this model was fine-tuned on
-the full Bridge dataset, no held-out split), the real test is closed-loop
-SimplerEnv success rate, not offline L1 against logged actions. Unlike F1,
-where the offline metric alone already told a clear story before closed-loop
-even ran, mimic's offline numbers are uninformative either way here — the
-closed-loop result isn't just a robustness check for mimic, it's the first
-real signal.
+Both variants were first checked with an offline probe (predicted action
+vs. logged action on real `bridge_orig_lerobot` moments) before the real
+closed-loop runs below. Not reported here: no held-out split, so any result
+is confounded with memorization — same reasoning that makes closed-loop
+success rate this experiment's actual metric. Kept for the record, not
+cited, in `OFFLINE_PROBE_BACKLOG.md`. Unlike F1-VLA (where the retired
+offline probe at least showed *some* pattern), mimic's version found no
+signal in any direction — which, as the closed-loop results below show, was
+itself uninformative about what closed-loop success rate would do.
 
 ## Results — closed-loop (variant 1, zero out)
 
@@ -122,12 +94,9 @@ task but stayed well above zero (48.6% → 34.7% average, still succeeding on
 a real fraction of episodes — see F1-VLA's `experiment1_ablation/README.md`).
 mimic-video's world-model signal, once removed, doesn't just degrade
 performance — closed-loop success collapses entirely on all four tasks,
-including Eggplant, which baseline solved 95.8% of the time. Combined with
-the offline probe finding no signal at all (`ablated` ≈ `baseline` ≈
-`shuffled` on single-step L1, above) — offline L1 completely failed to
-predict this. The world-model computation is clearly causally load-bearing
-for mimic-video's closed-loop behavior, more so than for F1-VLA, even
-though nothing in the offline metric hinted at it.
+including Eggplant, which baseline solved 95.8% of the time. The
+world-model computation is clearly causally load-bearing for mimic-video's
+closed-loop behavior, more so than for F1-VLA.
 
 ## Results — closed-loop (variant 2, shuffle)
 
@@ -151,12 +120,11 @@ timeouts, no crashes) — a real result.
 
 **This is the sharpest contrast with F1-VLA in the whole experiment.** For
 F1, shuffled (real image, wrong episode) recovers success almost exactly to
-baseline on every task, both offline and closed-loop — the model apparently
-only needs *some* real visual grounding in that slot, not the right one.
+baseline on every task, closed-loop — the model apparently only needs
+*some* real visual grounding in that slot, not the right one.
 For mimic-video, shuffled is statistically indistinguishable from ablated:
 a real image from a different episode helps exactly as much as zeros do,
-i.e. not at all. Combined with the offline probe (all three conditions
-identical there too), the picture for mimic-video is unusually clean and
+i.e. not at all. The picture for mimic-video is unusually clean and
 severe: the action decoder isn't reacting to "is there a real-shaped signal
 present" the way F1's does — it needs the *correct, current-episode*
 `crossattn_emb` specifically, and any substitute, real or not, is as good as

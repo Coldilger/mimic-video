@@ -45,46 +45,31 @@ but feed pre-recorded real frames instead of live teleoperation.
 
 ## How the metric is computed
 
-Take a real, logged moment from an actual Bridge episode: the "now"
-frame plus what the robot **actually** did a second later. Show the
-model "now" (and, in the oracle condition, the real "next"), compare the
-predicted action to the real one.
+A robot action is a vector of numbers. **L1** = mean `|predicted − real|`
+across the vector's numbers. Lower is more accurate. The comparison is
+between the oracle-conditioned prediction (real next frame via
+`is_hil=True` + `ingest_video()`) and a reference, on the same real
+decision points.
 
-A robot action is a vector of numbers. **L1** = mean
-`|predicted − real|` across the vector's numbers. Lower is more accurate.
+An earlier version of this probe replayed `bridge_orig_lerobot` — the exact
+dataset this checkpoint was finetuned on, with no held-out split —
+comparing the oracle's prediction against the logged expert action. That
+number is not reported here: with no held-out split, a null result there
+can't be cleanly attributed to "the mechanism genuinely doesn't benefit
+from foresight" versus "the model already memorized this trajectory well
+enough that neither condition needed the signal" — so it isn't decisive
+either way. Kept for the record, not cited, in `OFFLINE_PROBE_BACKLOG.md`.
+The live probe below replaces it. (The independent confirmation against
+this model's own published finding — Fig. 7-8, Section V, best performance
+at `τv≈1` — is reproduced by the live probe's own result below, so nothing
+is lost by not citing the offline number.)
 
-## Current results (115 samples: 24 episodes × 5 moments)
+## Live oracle probe (closed-loop, randomized)
 
-| | oracle | baseline (arm doesn't move) |
-|---|---|---|
-| position, L1 | **0.0092** (sd 0.0063) | 0.0097 |
-| gripper, L1 | 0.1717 | — |
-
-**How to read it:** the gap between oracle and the trivial baseline is
-almost zero (~1.05x). Even given the **real** future frame, the decoder
-doesn't extract meaningfully more value from it than from nothing at
-all. This means the inference-time computation (even in the best case,
-with a perfect future) carries no causal weight for action selection in
-this model.
-
-**Important finding — an independent confirmation of a result already in
-mimic-video's own paper.** The authors already show (Fig. 7-8, Section
-V) that best performance is achieved at `τv≈1`, i.e. when the future is
-pure noise rather than a rendered video. Our oracle test reaches the
-same conclusion from the other direction: not "noise works just as
-well" but "even the truth doesn't work better". This isn't a
-coincidence between two separate experiments — it's the same finding,
-that the foresight computation here isn't causally load-bearing, arrived
-at through two independent routes.
-
-## Live oracle probe (closed-loop, randomized) — memorization check
-
-The offline probe above replays `bridge_orig_lerobot` — the exact dataset
-this checkpoint was finetuned on, with no held-out split (caveat 1 below).
 This probe reuses the identical oracle mechanism (`VAMInference`'s
 `is_hil=True` + `ingest_video()`, unmodified, on a second model instance)
-but sources it from a live, randomized SimplerEnv-Bridge rollout instead:
-object placement is randomized per episode by SimplerEnv itself (the same
+but sources it from a live, randomized SimplerEnv-Bridge rollout: object
+placement is randomized per episode by SimplerEnv itself (the same
 mechanism Experiment 1's own closed-loop eval already uses), so verbatim
 recall of a specific trajectory is impossible here.
 
@@ -137,9 +122,9 @@ are not on the same scale and should not be compared to each other directly.
 
 - [ ] **Closed-loop success-rate evaluation with the oracle actually
   driving the robot** (not just a side-channel query). This repo's own paper
-  (Section III/Fig. 2) reports **closed-loop success rate**, not offline/live
-  single-step L1 — everything above (both probes) is a cheaper proxy for the
-  causal question, not a replication of the paper's own reported metric.
+  (Section III/Fig. 2) reports **closed-loop success rate**, not single-step
+  L1 — the live probe above is a cheaper proxy for the causal question, not
+  a replication of the paper's own reported metric.
   Getting a genuine closed-loop oracle number is harder than it looks: once
   the model's own action diverges from the logged trajectory, there is no
   pre-recorded "real future" left to inject at the next step. The source
@@ -155,8 +140,11 @@ are not on the same scale and should not be compared to each other directly.
 
 ## Caveats
 
-1. **Memorization.** See the general caveat — training had no held-out
-   split.
+1. **Distributional overfitting.** Object placement is randomized per
+   episode, so verbatim memorization of this exact trajectory is
+   impossible — but overfitting to the task *family* is a separate, softer
+   question this probe doesn't rule out. Not the same failure mode as the
+   offline probe this one replaced (see `OFFLINE_PROBE_BACKLOG.md`).
 2. **Checkpoint provenance.** Unlike F1 and LDA, the mimic-video
    checkpoint is the authors' own release, not our finetune — we don't
    control the training recipe. The training data also went through a

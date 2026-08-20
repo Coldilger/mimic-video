@@ -17,26 +17,29 @@ LDA-1B forks, each with a model-specific implementation.
   world-model signal.** One hypothesis, two opposite interventions:
   suppress the foresight signal where the model normally uses it (F1,
   mimic-video), or turn it on where the model normally doesn't (LDA-1B).
-  **Done** — both variants, offline and closed-loop: zeroing *or*
-  shuffling the signal collapses closed-loop success to 0% on every task
-  (vs. F1-VLA, where shuffling recovers to near-baseline) — see
-  `experiment1_ablation/README.md`.
+  **Done** — both variants, real closed-loop (the decisive metric): zeroing
+  *or* shuffling the signal collapses closed-loop success to 0% on every
+  task (vs. F1-VLA, where shuffling recovers to near-baseline) — see
+  `experiment1_ablation/README.md`. (An offline probe also ran first;
+  retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable
+  result.)
 - [`experiment2_oracle/`](experiment2_oracle/) — **Oracle injection.**
   Replace the predicted future with the ground-truth future, encoded
   through each model's own pipeline. Tests whether a *perfect* forecast
   would even be used if the model had one. Extends the case study in
   mimic-video's own paper (arXiv:2512.15692, Section III / Fig. 2) — this
-  model's own authors already ran a version of this. **Offline probe (L1)
-  done.** A live, randomized-rollout version of the same probe also now
-  exists (n=24 episodes, success rate 20.8%) — this initially looked like
-  an anomaly against a 41.7% figure cited elsewhere in this repo, but that
-  figure turned out to be from an unrelated, unmatched-settings sweep; a
-  sanity-check re-run confirmed 20.8% is the correct baseline at the
-  settings actually used (see `experiment2_oracle/ORACLE_EXPERIMENT.md`'s
-  live-probe section). **Closed-loop success rate with the oracle actually
-  driving the robot — the actual metric that case study reports — is still
-  outstanding**, see `experiment2_oracle/ORACLE_EXPERIMENT.md`'s "Not yet
-  done" section.
+  model's own authors already ran a version of this. **A live,
+  randomized-rollout probe is done** (n=24 episodes, success rate 20.8% —
+  this initially looked like an anomaly against a 41.7% figure cited
+  elsewhere in this repo, but that figure turned out to be from an
+  unrelated, unmatched-settings sweep; a sanity-check re-run confirmed
+  20.8% is the correct baseline at the settings actually used — see
+  `experiment2_oracle/ORACLE_EXPERIMENT.md`'s live-probe section). (An
+  earlier offline replay-based probe also existed; retired to
+  `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable result.)
+  **Closed-loop success rate with the oracle actually driving the robot —
+  the actual metric that case study reports — is still outstanding**, see
+  `experiment2_oracle/ORACLE_EXPERIMENT.md`'s "Not yet done" section.
 - [`experiment3_cost/`](experiment3_cost/) — **Cost per decision.**
   Characterizes how much inference-time compute each model actually spends
   on its world-model computation, and at what latency/success-rate
