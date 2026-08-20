@@ -16,9 +16,20 @@
 # Experiment 1 subclass involved at all) through the exact same protocol as
 # eval_ablated.slurm/eval_shuffled.slurm -- confirms the 0%/0% ablated and
 # shuffled results aren't an artifact of the venv/infra work done this
-# session, by checking the untouched model still reproduces numbers close
-# to the previously-measured baseline (Carrot 41.7%, Spoon 45.8%, Stack
-# 16.7%, Eggplant 95.8%, avg 50.0% -- see ../../RESULTS.md).
+# session.
+#
+# Expect roughly Carrot 20.8%, Spoon 12.5%, Stack 4.2%, Eggplant 8.3% (avg
+# 11.5%) at this script's fixed stop=23 -- confirmed reproducible across
+# three independent runs (2026-08-17 job in README.md's "Baseline sanity
+# re-run", 2026-08-19 job 631443, 2026-08-20 job 631931). Do NOT compare
+# against the 41.7%/45.8%/16.7%/95.8% figures elsewhere in this repo's
+# docs -- those are from the original July `--vam-stop-video-denoising-step`
+# sweep (best-of-sweep per task), not this fixed-stop=23 setting; see
+# experiment1_ablation/README.md's "Baseline sanity re-run" section for the
+# full explanation. Comparing a new run of this script against the July
+# figures instead of the matched-settings ones already burned real compute
+# once chasing a phantom anomaly (see experiment2_oracle/ORACLE_EXPERIMENT.md
+# git history).
 #
 # Required env vars: TASK, SEED
 

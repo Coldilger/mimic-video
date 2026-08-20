@@ -77,7 +77,7 @@ coincidence between two separate experiments — it's the same finding,
 that the foresight computation here isn't causally load-bearing, arrived
 at through two independent routes.
 
-## Live oracle probe (closed-loop, randomized) — preliminary, unresolved anomaly
+## Live oracle probe (closed-loop, randomized) — memorization check
 
 The offline probe above replays `bridge_orig_lerobot` — the exact dataset
 this checkpoint was finetuned on, with no held-out split (caveat 1 below).
@@ -109,28 +109,24 @@ Average success: **20.8%** (5/24).
 | oracle L1 (predicted position vs. real next position) | 0.00293 (sd 0.00169) | 0.00314 (sd 0.00185) |
 | "arm doesn't move" baseline | 0.00339 | 0.00382 |
 
-**This run is flagged, not adopted as a result yet — one number here does
-not match what's already established.** 20.8% is well below the 41.7%
-baseline already measured on this exact task and episode range
-(`eval_baseline.slurm`, see `../../RESULTS.md`). The pipeline itself ran
-clean (`EVAL_EXIT=0`, no errors), so this isn't a crash — but a ~2x success
-drop on the identical task/episode range is not yet explained. Leading
-candidate: running two full `VAMInference` instances simultaneously
-(driving + oracle, ~2 full video-diffusion backbones resident on one GPU)
-may be perturbing the driving instance through resource contention, even
-though the wrapper design (side-channel query, no coupling into the
-driving instance's own state or return value) should leave it unaffected in
-principle. **Not yet isolated.**
-
-Given this, the oracle-vs-baseline gap above (0.00314 vs 0.00382 — much
-closer together than F1-VLA's equivalent live-probe gap) should not yet be
-read as a finding. Two different things could be true independently: the
-success-rate anomaly could be a real perturbation from the side-computation
-(in which case the episode set being averaged over here isn't the same
-distribution as the 41.7%-baseline runs, and these L1 numbers are measuring
-something slightly different than intended), or it could be ordinary
-between-run variance on a task this repo's own docs already flag as noisy
-at n=24 (see the Eggplant anomaly in `../experiment1_ablation/README.md`).
+**Sanity-checked against the driving model's own success rate — 20.8% is
+correct, not an anomaly.** This number initially looked suspicious against
+the 41.7% figure quoted elsewhere in this repo for the same task, and a
+follow-up run (job 631931) re-ran the identical 24-episode range through
+the plain, non-oracle-wrapped `eval_baseline.slurm` to check whether the
+oracle side-computation (a second `VAMInference` instance resident on the
+same GPU) was perturbing the driving model. It reproduced **20.8% exactly**
+— confirming the side-computation has no effect. What actually happened:
+**41.7% was the wrong number to compare against.** It comes from an older
+July sweep over `--vam-stop-video-denoising-step` (best-of-sweep per task),
+not from the fixed `stop=23` this probe and every Experiment 1 condition
+actually use. The correct, matched-settings baseline for Carrot at
+`stop=23` is **20.8%** — already established independently on 2026-08-17
+(see `../experiment1_ablation/README.md`'s "Baseline sanity re-run" /
+Eggplant-anomaly section) and now reproduced twice more (job 631443 with
+the oracle instance attached, job 631931 without it). Three independent
+runs, same number, with and without the thing under suspicion — this is
+resolved, not open.
 
 **Note on the metric's construction:** unlike F1-VLA's copy of this probe
 (action vs. the driving policy's own action), this one compares a predicted
@@ -139,11 +135,6 @@ are not on the same scale and should not be compared to each other directly.
 
 ## Not yet done
 
-- [ ] **Resolve the success-rate anomaly** before trusting the table above:
-  re-run the same 24-episode Carrot range through the plain (non-oracle-
-  wrapped) `eval_baseline.slurm` path to check whether 41.7% reproduces on
-  this exact venv/checkpoint/day, or whether it's also lower — this isolates
-  whether the oracle side-computation is perturbing the driving model.
 - [ ] **Closed-loop success-rate evaluation with the oracle actually
   driving the robot** (not just a side-channel query). This repo's own paper
   (Section III/Fig. 2) reports **closed-loop success rate**, not offline/live
@@ -156,7 +147,11 @@ are not on the same scale and should not be compared to each other directly.
   "human-in-the-loop evaluation (oracle study)") handles this via live human
   teleoperation — expensive per episode, and not yet run for any of the
   three models.
-- [ ] Seed repeats once the anomaly above is resolved.
+- [ ] Seed repeats — see caveat 3 below (note: mimic's episode outcomes are
+  fully deterministic given task+episode-range, per
+  `../experiment1_ablation/README.md`'s "not three seeds" finding, so a
+  repeat here means a different task or episode range, not a different
+  seed value).
 
 ## Caveats
 
