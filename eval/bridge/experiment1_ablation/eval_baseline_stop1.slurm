@@ -4,13 +4,13 @@
 #SBATCH --gres=gpu:H200:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=04:00:00
+#SBATCH --time=00:30:00
 # baseline runs the real video-diffusion backbone every replan, same cost
 # as shuffled (~10s/decision per experiment3_cost's timing measurement) --
 # matching eval_shuffled.slurm's time budget, not eval_ablated.slurm's
 # (which is ~80x cheaper and would time out at this workload).
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-baseline-%j.out
+#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-baseline-stop1-%j.out
 
 # Sanity-check re-run of the UNMODIFIED baseline (real VAMInference, no
 # Experiment 1 subclass involved at all) through the exact same protocol as
@@ -84,7 +84,7 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --rgb-overlay-path "$OVERLAY" \
   --robot-init-x $INIT_X $INIT_X 1 --robot-init-y $INIT_Y $INIT_Y 1 \
   --obj-variation-mode episode --obj-episode-range 0 24 \
-  --additional-env-save-tags "mimic_baseline_sanity_seed${SEED}" \
+  --additional-env-save-tags "mimic_baseline_stop1_seed${SEED}" \
   --robot-init-rot-quat-center 0 0 0 1 --robot-init-rot-rpy-range 0 0 1 0 0 1 0 0 1 \
   --vam-experiment-name "$EXPERIMENT_NAME" \
   --vam-video-model-path "$VIDEO_MODEL" \
@@ -93,6 +93,6 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --vam-num-execute-actions 5 \
   --vam-img-horizon 5 \
   --vam-lowdim-horizon 1 \
-  --vam-stop-video-denoising-step 23
+  --vam-stop-video-denoising-step 1
 
 echo "EVAL_EXIT=$? TASK=$TASK SEED=$SEED"

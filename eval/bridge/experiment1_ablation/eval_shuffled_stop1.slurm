@@ -1,35 +1,24 @@
 #!/bin/bash
-#SBATCH --job-name=mimic_eval_baseline
+#SBATCH --job-name=mimic_eval_shuffled
 #SBATCH --partition=medium_gpuh200
 #SBATCH --gres=gpu:H200:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=04:00:00
-# baseline runs the real video-diffusion backbone every replan, same cost
-# as shuffled (~10s/decision per experiment3_cost's timing measurement) --
-# matching eval_shuffled.slurm's time budget, not eval_ablated.slurm's
-# (which is ~80x cheaper and would time out at this workload).
+#SBATCH --time=00:30:00
+# shuffled runs the real video-diffusion backbone every replan, same cost
+# as baseline (~10s/decision per experiment3_cost's timing measurement,
+# vs ablated's ~130ms) -- the original 1h limit (copied from
+# eval_ablated.slurm, which IS nearly free) timed out at ~20/24 episodes
+# on the 60-step tasks and would fare worse on Eggplant's 120-step budget.
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-baseline-%j.out
+#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-shuffled-stop1-%j.out
 
-# Sanity-check re-run of the UNMODIFIED baseline (real VAMInference, no
-# Experiment 1 subclass involved at all) through the exact same protocol as
-# eval_ablated.slurm/eval_shuffled.slurm -- confirms the 0%/0% ablated and
-# shuffled results aren't an artifact of the venv/infra work done this
-# session.
-#
-# Expect roughly Carrot 20.8%, Spoon 12.5%, Stack 4.2%, Eggplant 8.3% (avg
-# 11.5%) at this script's fixed stop=23 -- confirmed reproducible across
-# three independent runs (2026-08-17 job in README.md's "Baseline sanity
-# re-run", 2026-08-19 job 631443, 2026-08-20 job 631931). Do NOT compare
-# against the 41.7%/45.8%/16.7%/95.8% figures elsewhere in this repo's
-# docs -- those are from the original July `--vam-stop-video-denoising-step`
-# sweep (best-of-sweep per task), not this fixed-stop=23 setting; see
-# experiment1_ablation/README.md's "Baseline sanity re-run" section for the
-# full explanation. Comparing a new run of this script against the July
-# figures instead of the matched-settings ones already burned real compute
-# once chasing a phantom anomaly (see experiment2_oracle/ORACLE_EXPERIMENT.md
-# git history).
+# One task x one seed x 24 episodes of closed-loop SimplerEnv rollout,
+# shuffled (wrong-episode real input) condition -- variant 2 closed-loop. Matches the
+# 4-task x 3-seed x 24-episode protocol F1-VLA and LDA-1B were measured on
+# (see eval.sh's stop_video_denoising_step=23, num_execute_actions=5,
+# img_horizon=5, lowdim_horizon=1 -- the checkpoint's chosen config,
+# unchanged from the offline probes run earlier this session).
 #
 # Required env vars: TASK, SEED
 
@@ -73,18 +62,18 @@ case "$TASK" in
     ;;
 esac
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv
+cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation
 VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
 
-"$VENV_PY" simpler_env/main_inference.py \
-  --ckpt-path "mimic_baseline_sanity" \
+"$VENV_PY" main_inference_shuffled.py \
+  --ckpt-path "mimic_shuffled" \
   --robot "$ROBOT" --policy-setup widowx_bridge \
   --control-freq 5 --sim-freq 500 --max-episode-steps "$MAX_STEPS" \
   --env-name "$TASK" --scene-name "$SCENE" \
   --rgb-overlay-path "$OVERLAY" \
   --robot-init-x $INIT_X $INIT_X 1 --robot-init-y $INIT_Y $INIT_Y 1 \
   --obj-variation-mode episode --obj-episode-range 0 24 \
-  --additional-env-save-tags "mimic_baseline_sanity_seed${SEED}" \
+  --additional-env-save-tags "mimic_shuffled_stop1_seed${SEED}" \
   --robot-init-rot-quat-center 0 0 0 1 --robot-init-rot-rpy-range 0 0 1 0 0 1 0 0 1 \
   --vam-experiment-name "$EXPERIMENT_NAME" \
   --vam-video-model-path "$VIDEO_MODEL" \
@@ -93,6 +82,6 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --vam-num-execute-actions 5 \
   --vam-img-horizon 5 \
   --vam-lowdim-horizon 1 \
-  --vam-stop-video-denoising-step 23
+  --vam-stop-video-denoising-step 1
 
 echo "EVAL_EXIT=$? TASK=$TASK SEED=$SEED"

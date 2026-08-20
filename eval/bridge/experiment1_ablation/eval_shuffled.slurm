@@ -36,6 +36,7 @@ if [ ! -f "usr/lib/x86_64-linux-gnu/libvulkan.so.1" ]; then
 fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 export DISPLAY=""
+ulimit -t unlimited
 
 CKPT_DIR="/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints"
 EXPERIMENT_NAME="w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256"
