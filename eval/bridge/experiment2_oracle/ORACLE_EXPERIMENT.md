@@ -118,6 +118,41 @@ resolved, not open.
 absolute position against a real physical outcome — the two models' gaps
 are not on the same scale and should not be compared to each other directly.
 
+### Update 2026-08-21 — rerun at the corrected operating point (`stop=1`)
+
+Everything above ran at `--vam-stop-video-denoising-step=23`, since
+established to be the wrong operating point for this model — see
+`../experiment1_ablation/README.md`'s "Recompute at the correct operating
+point" section for the full story (a real `ulimit` bug and a misleading
+indirect timing measurement both had to be worked through before landing
+on this). Rerun at `stop=1` (job 632644 and 632660, two independent
+launches, same 24-episode Carrot range):
+
+| | all samples (n=96) | successful episodes only (n=36) |
+|---|---|---|
+| oracle L1 (job 632644) | 0.00486 | 0.00430 |
+| oracle L1 (job 632660) | 0.00490 | 0.00449 |
+| "arm doesn't move" baseline | 0.00319 | 0.00402 |
+
+Both independent runs agree closely with each other (0.00486 vs 0.00490
+overall — good internal consistency). Closed-loop success on this run:
+37.5%, matching `experiment1_ablation/README.md`'s own `stop=1` baseline
+number exactly, as expected (same config).
+
+**This flips the sign of the earlier reading.** At `stop=23`, oracle L1
+(0.00314, successful episodes) was slightly *better* than the trivial
+baseline (0.00382). At `stop=1`, oracle L1 (~0.0044, averaged across the
+two runs) is slightly *worse* than the trivial baseline (0.00402) — the
+same qualitative pattern found for oracle-vs-baseline at `stop=23`'s
+*offline* probe, interestingly, though that number is retired to backlog
+and not being resurrected as evidence here. Flagged, not over-interpreted:
+both L1 values are small in absolute terms and close to each other; n=36
+successful-episode samples is not a large sample; and this is exactly the
+kind of near-baseline comparison the success-episode filter was built to
+make trustworthy in the first place, not a settled contradiction of the
+`stop=23` reading. Worth an independent repeat before treating "oracle is
+now worse than trivial at the correct operating point" as a real finding.
+
 ## Not yet done
 
 - [ ] **Closed-loop success-rate evaluation with the oracle actually

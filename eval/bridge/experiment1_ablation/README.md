@@ -1,9 +1,13 @@
 # Experiment 1 — Ablation of the world-model signal (mimic-video)
 
 **Status: complete.** Both variants run closed-loop (all 4 tasks × 24
-episodes each) — the decisive result. (An offline probe also ran first;
-retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable
-result, see below.)
+episodes each) — the decisive result. Recomputed 2026-08-21 at the
+model's actual correct operating point (`--vam-stop-video-denoising-step=1`,
+not `=23`) — see "Recompute at the correct operating point" below for the
+canonical numbers; baseline averages 47.9% (not 11.5%), shuffled still
+collapses to exactly 0.0% on every task at both settings. (An offline probe
+also ran first; retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split,
+not a citable result, see below.)
 
 ## What this tests
 
@@ -247,6 +251,93 @@ this are gone (30-day `/scratch` purge), and the qualitative finding this
 discrepancy sits next to (ablation drives every task to exactly zero) is
 unaffected by which baseline figure is correct. Documenting as an open,
 unresolved measurement anomaly rather than spending more compute chasing it.
+
+**Update 2026-08-21 — this is resolved below.** The "Eggplant anomaly" was
+never a real anomaly: `stop=23` was simply the wrong operating point. See the
+next section — at the correct setting (`stop=1`), Eggplant reproduces the
+July figure almost exactly (87.5% vs 95.8%).
+
+## Recompute at the correct operating point (`stop=1`, 2026-08-21)
+
+Everything above (this doc's headline table, the "Baseline sanity re-run,"
+the Eggplant discrepancy) was measured at `--vam-stop-video-denoising-step=23`
+— a value nobody had explicitly justified, just inherited from an early
+config. The user independently supplied a saved July 2026 sweep table
+(`stop=0` through `stop=10`) showing `stop=1` maximizes average success
+across all four tasks, consistent with this model's own paper (best
+performance near `τv≈1`, i.e. minimal denoising). This section re-runs
+Experiment 1 at `stop=1` to check whether that holds up post-venv-rebuild
+and whether the ablation/shuffle findings survive at the corrected setting.
+
+**A real debugging detour first, worth recording so it doesn't repeat.**
+The first attempt at this recompute looked catastrophically slow — jobs
+killed by their 30-minute walltime having completed only 1-2 of 24
+episodes. Two separate things turned out to be going on, and conflating
+them cost real time:
+1. **A real bug:** `eval_baseline_stop1.slurm`/`eval_shuffled_stop1.slurm`
+   (sed-derived from `eval_baseline.slurm`/`eval_shuffled.slurm`) were
+   missing `ulimit -t unlimited`. At `stop=23`, GPU compute so thoroughly
+   dominates wall-clock time that the default `RLIMIT_CPU` soft limit
+   (~600s of actual CPU-seconds) is never reached; at `stop=1`, GPU compute
+   per decision drops enough that the same CPU-bound simulator/Python work
+   now accumulates 600s of real CPU time within a normal run, and jobs died
+   mid-episode with `CPU time limit exceeded` (exit 152) — see
+   `project_hpc_cpu_time_limit` memory. Fixed by adding the `ulimit` line
+   to both scripts (now also added to the base scripts as a precaution).
+2. **A red herring, briefly mistaken for a second bug:** an indirect timing
+   proxy (gaps between `svulkan2` GLFW-warning timestamps in the log, used
+   as a stand-in for per-decision latency) showed a suspiciously consistent
+   ~39-44s "per replan" on H100 and ~28-29s on H200 — which looked like a
+   recurring CUDA-graph-recapture bug. A direct measurement from the
+   purpose-built timing wrapper (job 632645, same `stop=1` setting)
+   settled it: **median latency is 1060ms**, matching the original
+   prediction. The indirect proxy was measuring something other than pure
+   decision latency (most likely full 5-env-step SimplerEnv cycles,
+   physics+rendering included, not the model call in isolation) and should
+   not be trusted as a latency measurement again.
+
+### Results (24 episodes/task, all `EVAL_EXIT=0`, no crashes)
+
+| task | baseline, `stop=1` | July sweep (`stop=1`, reference) | baseline, `stop=23` | shuffled, `stop=1` | shuffled, `stop=23` |
+|---|---|---|---|---|---|
+| Put Carrot on Plate | **37.5%** | 41.7% | 20.8% | **0.0%** | 0.0% |
+| Put Spoon on Towel | **50.0%** | 45.8% | 12.5% | **0.0%** | 0.0% |
+| Stack Green Cube | **16.7%** | 16.7% | 4.2% | **0.0%** | 0.0% |
+| Put Eggplant in Basket | **87.5%** | 95.8% | 8.3% | **0.0%** | 0.0% |
+| **average** | **47.9%** | **50.0%** | **11.5%** | **0.0%** | **0.0%** |
+
+**Baseline at `stop=1` reproduces the July figures within single-episode
+noise on every task** (Stack matches to one decimal place) — confirms the
+venv rebuild didn't silently change anything, and confirms `stop=1` really
+is the model's genuine operating point, not `stop=23`. `stop=23`'s own
+baseline (11.5% avg) undersells this model by more than 4x.
+
+**Shuffled collapses to exactly 0.0% on every task at `stop=1` too —
+identical to `stop=23`.** This is the more important result for the
+thesis's actual research question: the total-collapse-under-content-mismatch
+finding is not an artifact of running at a bad operating point. It holds
+identically whether the honest baseline is 11.5% or 47.9%. If anything this
+strengthens the finding — a model achieving a real 47.9% average is not
+somehow "already near zero anyway"; a genuinely competent baseline still
+collapses completely the instant the world-model signal comes from the
+wrong scene.
+
+**Cost per decision also changes materially** — see
+`experiment3_cost/README.md`'s own update: median latency at `stop=1` is
+1060ms, not 10227ms. This closes most (not all) of the "40-77x more
+expensive than F1/LDA" gap; see that doc for the corrected comparison.
+
+**Live oracle probe at `stop=1`** — see `experiment2_oracle/ORACLE_EXPERIMENT.md`'s
+own update; the oracle-vs-trivial-baseline comparison looks slightly
+different at this setting (oracle now marginally worse than trivial, vs.
+marginally better at `stop=23`) — flagged there as a real but small-sample
+observation, not over-interpreted.
+
+**Decision on which numbers are canonical going forward:** `stop=1` is now
+the reported operating point for mimic-video's baseline/shuffled/oracle/cost
+numbers throughout this thesis; `stop=23`'s numbers stay in this document
+for provenance (and because the *qualitative* Exp1 finding was independently
+confirmed at both), but are superseded, not deleted.
 
 ## Not yet done
 

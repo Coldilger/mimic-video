@@ -1,6 +1,12 @@
 # Experiment 3 — Cost per decision (mimic-video)
 
-**Status: done. Full scale (n=48 replans/condition, 4 episodes, Carrot task, 2026-08-19), confirming the smoke-scale numbers below.**
+**Status: done. Recomputed 2026-08-21 at the model's correct operating point
+(`--vam-stop-video-denoising-step=1`, not `=23`) — median latency 1060ms,
+not 10227ms, closing most of the "40-77x more expensive" gap to ~4-5x. See
+"Update 2026-08-21" below for the canonical number; the `stop=23` numbers
+throughout this doc are superseded but kept for provenance. Original
+full-scale measurement: n=48 replans/condition, 4 episodes, Carrot task,
+2026-08-19, confirming the smoke-scale numbers below.**
 
 ## What this tests
 
@@ -124,6 +130,65 @@ latent-only tap point (that saves the pixel-decode cost, not the sampling-loop
 cost). F1-VLA's VAR and LDA-1B's absence of any foresight-sampling loop are
 both architecturally cheap for the same underlying reason: far fewer
 token-processing steps, not fewer parameters.
+
+**Caveat on the table above, noticed 2026-08-21:** the `0 (ablated)` row
+isn't actually a `stop=0` run of the real denoising loop — it's
+`VAMAblatedInference`/`ZeroWorldModelPipeline`, a different code path that
+skips generation entirely (Experiment 1's ablation mechanism), reused here
+as a stand-in for "zero steps." The `12`/`23` pair is the only genuinely
+apples-to-apples comparison in that table (both real runs of the actual
+denoising loop at different `stop_after_step` values); the implied
+"0→23 is linear and validates the step-count story" reading leans on a
+comparison across two different mechanisms. The qualitative conclusion
+(cost scales with step count) still holds — see the `stop=1` measurement
+directly below, which is a real run of the actual loop and lands close to
+what the `12→23`-only slope alone would predict (~1097ms) — but this
+should have been flagged before now.
+
+## Update 2026-08-21 — real cost at the correct operating point (`stop=1`)
+
+Every number above used `stop=23`, since established to be the wrong
+operating point for this model — see `../experiment1_ablation/README.md`'s
+"Recompute at the correct operating point" for the full story. Re-measured
+at `stop=1` (job 632645, same method as "full scale" above, n=48 replans,
+4 episodes, Carrot task):
+
+| variant | n | median | p95 | mean | min | max |
+|---|---|---|---|---|---|---|
+| baseline, `stop=1` | 48 | **1060.0 ms** | 1349.8 ms | 1615.5 ms | 1054.2 ms | 26830.4 ms |
+| baseline, `stop=23` (above) | 48 | 10226.9 ms | 10416.5 ms | 10750.0 ms | 10074.7 ms | 35424.1 ms |
+
+**Median drops ~9.6x** (1060ms vs 10227ms). The min (1054.2ms) sits almost
+exactly at the median, meaning the large majority of calls are tightly
+clustered near 1.05-1.06s — consistent with the `12→23`-slope-only
+prediction above (~1097ms), not the (methodologically weaker) `0→23`
+prediction. The one `max=26830.4ms` outlier is the one-time CUDA-graph
+warmup cost this doc's own smoke-scale table already documented ("max
+latencies ~36-38s are the one-time warm-up cost on each condition's first
+replan... not representative of steady-state cost") — same mechanism,
+same order of magnitude, still one-time.
+
+**Revised cross-model comparison** (was: mimic 40-77x pricier than F1/LDA):
+
+| model | latency, median | vs. F1-VLA (215.7ms) | vs. LDA-1B (254.7ms) |
+|---|---|---|---|
+| F1-VLA | 215.7 ms | 1x | — |
+| LDA-1B | 254.7 ms | — | 1x |
+| mimic-video, `stop=23` (superseded) | 10226.9 ms | 47.4x | 40.2x |
+| mimic-video, `stop=1` (correct) | **1060.0 ms** | **4.9x** | **4.2x** |
+
+Still the most expensive of the three at its actual operating point — the
+qualitative ranking (mimic > LDA > F1, or mimic > F1 > LDA depending on
+exact numbers) doesn't flip — but the magnitude of the gap was
+substantially overstated by measuring the wrong `stop` value. **A debugging
+note, since it briefly cost real time:** a real `ulimit`/CPU-time-limit bug
+initially made the `stop=1` closed-loop recompute look like it might take
+hours per task; an unreliable indirect timing proxy (gaps between log
+timestamps unrelated to this instrumented measurement) then suggested a
+~39s/replan recurring cost, which looked like a second, separate bug. Both
+were red herrings — this table, from the same purpose-built timing wrapper
+used for every other number in this document, is the number that should be
+cited.
 
 ## Not yet done
 

@@ -17,25 +17,31 @@ LDA-1B forks, each with a model-specific implementation.
   world-model signal.** One hypothesis, two opposite interventions:
   suppress the foresight signal where the model normally uses it (F1,
   mimic-video), or turn it on where the model normally doesn't (LDA-1B).
-  **Done** — both variants, real closed-loop (the decisive metric): zeroing
-  *or* shuffling the signal collapses closed-loop success to 0% on every
-  task (vs. F1-VLA, where shuffling recovers to near-baseline) — see
-  `experiment1_ablation/README.md`. (An offline probe also ran first;
-  retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable
-  result.)
+  **Done** — both variants, real closed-loop (the decisive metric).
+  Recomputed 2026-08-21 at the model's actual correct operating point
+  (`stop=1`, not `stop=23` — the latter was simply the wrong setting,
+  never justified, inherited from an early config): baseline averages
+  **47.9%** (not 11.5%), matching the user's own saved July reference
+  sweep within noise. Zeroing *or* shuffling the signal still collapses
+  closed-loop success to exactly **0% on every task at both settings** —
+  the total-collapse finding is robust to the operating point, not an
+  artifact of a bad one (vs. F1-VLA, where shuffling recovers to
+  near-baseline) — see `experiment1_ablation/README.md`. (An offline probe
+  also ran first; retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out
+  split, not a citable result.)
 - [`experiment2_oracle/`](experiment2_oracle/) — **Oracle injection.**
   Replace the predicted future with the ground-truth future, encoded
   through each model's own pipeline. Tests whether a *perfect* forecast
   would even be used if the model had one. Extends the case study in
   mimic-video's own paper (arXiv:2512.15692, Section III / Fig. 2) — this
   model's own authors already ran a version of this. **A live,
-  randomized-rollout probe is done** (n=24 episodes, success rate 20.8% —
-  this initially looked like an anomaly against a 41.7% figure cited
-  elsewhere in this repo, but that figure turned out to be from an
-  unrelated, unmatched-settings sweep; a sanity-check re-run confirmed
-  20.8% is the correct baseline at the settings actually used — see
-  `experiment2_oracle/ORACLE_EXPERIMENT.md`'s live-probe section). (An
-  earlier offline replay-based probe also existed; retired to
+  randomized-rollout probe is done**, rerun 2026-08-21 at the corrected
+  `stop=1` operating point (two independent runs agree closely): oracle L1
+  now comes out slightly *worse* than the trivial "arm doesn't move"
+  baseline — a sign flip from the `stop=23` reading (slightly better),
+  flagged as a real but small-sample observation, not yet treated as
+  settled — see `experiment2_oracle/ORACLE_EXPERIMENT.md`'s update section.
+  (An earlier offline replay-based probe also existed; retired to
   `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable result.)
   **Closed-loop success rate with the oracle actually driving the robot —
   the actual metric that case study reports — is still outstanding**, see
@@ -44,8 +50,10 @@ LDA-1B forks, each with a model-specific implementation.
   Characterizes how much inference-time compute each model actually spends
   on its world-model computation, and at what latency/success-rate
   trade-off. Context for interpreting Experiments 1 and 2. **Done** — full
-  scale (n=48/condition) measured 2026-08-19, see
-  `experiment3_cost/README.md`.
+  scale (n=48/condition) measured 2026-08-19; recomputed 2026-08-21 at the
+  corrected `stop=1` operating point: median latency **1060ms**, not
+  10227ms — closes most of the "40-77x more expensive than F1/LDA" gap
+  down to **~4-5x**. See `experiment3_cost/README.md`.
 - [`experiment4_probing/`](experiment4_probing/) — **Representation
   probing.** Freezes each model's backbone and trains a small probe head to
   predict future end-effector pose from a single frozen hidden state. Tests
