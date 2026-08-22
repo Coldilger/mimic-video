@@ -298,13 +298,13 @@ them cost real time:
 
 ### Results (24 episodes/task, all `EVAL_EXIT=0`, no crashes)
 
-| task | baseline, `stop=1` | July sweep (`stop=1`, reference) | baseline, `stop=23` | shuffled, `stop=1` | shuffled, `stop=23` |
-|---|---|---|---|---|---|
-| Put Carrot on Plate | **37.5%** | 41.7% | 20.8% | **0.0%** | 0.0% |
-| Put Spoon on Towel | **50.0%** | 45.8% | 12.5% | **0.0%** | 0.0% |
-| Stack Green Cube | **16.7%** | 16.7% | 4.2% | **0.0%** | 0.0% |
-| Put Eggplant in Basket | **87.5%** | 95.8% | 8.3% | **0.0%** | 0.0% |
-| **average** | **47.9%** | **50.0%** | **11.5%** | **0.0%** | **0.0%** |
+| task | baseline, `stop=1` | July sweep (`stop=1`, reference) | baseline, `stop=23` | shuffled, `stop=1` | shuffled, `stop=23` | ablated, `stop=1` |
+|---|---|---|---|---|---|---|
+| Put Carrot on Plate | **37.5%** | 41.7% | 20.8% | **0.0%** | 0.0% | **0.0%** |
+| Put Spoon on Towel | **50.0%** | 45.8% | 12.5% | **0.0%** | 0.0% | **0.0%** |
+| Stack Green Cube | **16.7%** | 16.7% | 4.2% | **0.0%** | 0.0% | **0.0%** |
+| Put Eggplant in Basket | **87.5%** | 95.8% | 8.3% | **0.0%** | 0.0% | **0.0%** |
+| **average** | **47.9%** | **50.0%** | **11.5%** | **0.0%** | **0.0%** | **0.0%** |
 
 **Baseline at `stop=1` reproduces the July figures within single-episode
 noise on every task** (Stack matches to one decimal place) — confirms the
@@ -321,6 +321,20 @@ strengthens the finding — a model achieving a real 47.9% average is not
 somehow "already near zero anyway"; a genuinely competent baseline still
 collapses completely the instant the world-model signal comes from the
 wrong scene.
+
+**Ablated, rerun at `stop=1` (2026-08-22, `eval_ablated_stop1.slurm`,
+jobs 633963-633966, `EVAL_EXIT=0` on all four, `ulimit -t unlimited` added
+— the original script never had it, same class of bug as
+baseline/shuffled's own `stop=1` recompute).** Collapses to exactly 0.0%
+on every task, same as shuffled — the previous `stop=23`-only ablated
+number is now confirmed at the model's real operating point too, closing
+the last gap in this table. mimic-video now has the complete 3-condition
+picture F1-VLA has (baseline / ablated / shuffled, all at one consistent
+setting): removing the world-model signal entirely (0.0%) and corrupting
+its content (0.0%) are indistinguishable from each other and both total —
+unlike F1-VLA, where ablated and shuffled diverge sharply (see that
+model's own README), for mimic-video *any* content mismatch, missing or
+wrong alike, is fatal.
 
 **Cost per decision also changes materially** — see
 `experiment3_cost/README.md`'s own update: median latency at `stop=1` is
