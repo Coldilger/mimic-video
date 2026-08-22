@@ -153,9 +153,9 @@ make trustworthy in the first place, not a settled contradiction of the
 `stop=23` reading. Worth an independent repeat before treating "oracle is
 now worse than trivial at the correct operating point" as a real finding.
 
-## Not yet done
+## Not pursued (a deliberate scope decision, not an oversight)
 
-- [ ] **Closed-loop success-rate evaluation with the oracle actually
+- **Closed-loop success-rate evaluation with the oracle actually
   driving the robot** (not just a side-channel query). This repo's own paper
   (Section III/Fig. 2) reports **closed-loop success rate**, not single-step
   L1 — the live probe above is a cheaper proxy for the causal question, not
@@ -164,9 +164,15 @@ now worse than trivial at the correct operating point" as a real finding.
   the model's own action diverges from the logged trajectory, there is no
   pre-recorded "real future" left to inject at the next step. The source
   paper (and this repo's own `main_inference_hil.py` / `eval_hil.sh`,
-  "human-in-the-loop evaluation (oracle study)") handles this via live human
-  teleoperation — expensive per episode, and not yet run for any of the
-  three models.
+  "human-in-the-loop evaluation (oracle study)") handles this via a real
+  live human teleoperator per episode, not a script. **Not being run for
+  any of the three models in this thesis** — the infrastructure and time
+  cost don't fit the scope here, not a TODO waiting on availability. Read
+  the L1 numbers above as evidence about the causal question this probe was
+  built for, not as a stand-in for this number, permanently — not "for now."
+
+## Not yet done
+
 - [ ] Seed repeats — see caveat 3 below (note: mimic's episode outcomes are
   fully deterministic given task+episode-range, per
   `../experiment1_ablation/README.md`'s "not three seeds" finding, so a
