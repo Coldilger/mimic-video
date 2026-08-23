@@ -85,6 +85,23 @@ policy that only succeeds part of the time isn't a meaningful reference;
 restricted to episodes SimplerEnv scored successful.
 Implementation: `main_inference_live_oracle.py`.
 
+**Where the real next frame actually comes from — this is not foresight.**
+The simulator is a live physics engine, not a lookup into a pre-recorded
+dataset. At every control tick the real (non-oracle) `VAMInference` observes
+the current frame and picks an action; the simulator executes it and
+genuinely advances, producing the next frame as a direct physical
+consequence — nothing is predicted or fetched in advance. mimic's oracle
+needs a whole 12-frame future window (not just one frame), so the lag is
+larger than for F1-VLA/LDA-1B's copies: the probe keeps a rolling buffer of
+the last 13 ticks, and once it's full, treats the *oldest* buffered tick as
+"now" and the 12 newer ones — all of which have already genuinely happened
+in the simulator — as its real future window. The query is retrospective,
+12 ticks late, not prospective: it asks what the model would have predicted
+back then, had it been given this now-known real future instead of
+generating its own. That hypothetical action/position is never executed and
+never touches the robot's real trajectory — the robot's entire path through
+the simulator is driven by the real (non-oracle) model alone throughout.
+
 ### Results (job 631443, task PutCarrotOnPlateInScene-v0, 24 episodes)
 
 Average success: **20.8%** (5/24).
