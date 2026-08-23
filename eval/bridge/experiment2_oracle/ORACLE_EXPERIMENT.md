@@ -153,6 +153,64 @@ make trustworthy in the first place, not a settled contradiction of the
 `stop=23` reading. Worth an independent repeat before treating "oracle is
 now worse than trivial at the correct operating point" as a real finding.
 
+### Update 2026-08-22 — unified construction: action vs. real policy's own action
+
+Every result above compares oracle's predicted *position* against the real
+*achieved* position one step later — a genuinely different construction
+from F1-VLA's and LDA-1B's own Exp2 (predicted *action* vs. the real
+*policy's own action*, restricted to successful episodes), despite an
+earlier commit message claiming parity with F1-VLA's copy of this script.
+`main_inference_live_oracle.py` now also computes the unified comparison:
+oracle's raw predicted delta action against the delta action the real
+(self-imagining) driving model actually took at that same historical tick
+— not composed into a position at all. Both constructions are computed and
+reported side by side now; the position-based one is kept for continuity
+with everything above, not because it's wrong.
+
+Job 634004 (`live_oracle_stop1.slurm`, `stop=1`, PutCarrotOnPlate, 24
+episodes, closed-loop success 37.5% — matches other `stop=1` runs exactly,
+as expected, same config):
+
+| | all samples (n=96) | successful episodes only (n=36) |
+|---|---|---|
+| oracle **action** L1 (unified w/ F1-VLA/LDA-1B) | 0.03080 (sd 0.04063) | 0.05141 (sd 0.05236) |
+| zero-action baseline | 0.28982 | 0.26718 |
+| oracle **position** L1 (original construction) | 0.00477 (sd 0.00379) | 0.00466 (sd 0.00462) |
+| "arm doesn't move" baseline | 0.00319 | 0.00402 |
+
+**Oracle's action stays close to what the real driving model's own
+imagination already produces** — about 9x closer than the zero-action
+baseline on all samples, ~5x on successful episodes only. Same qualitative
+shape as F1-VLA's own result (oracle ≈8x closer to the real policy's
+action than a zero-action guess). Read in isolation this would be exactly
+as ambiguous as F1's own number was before Exp1 resolved it (see that
+model's own doc): either mimic's self-imagined future is already close to
+correct (explanation (a)), or the action-decoder doesn't read out forecast
+content in a fine-grained way (explanation (b)).
+
+**Exp1 already rules out (b) for mimic — decisively, in the opposite
+direction from F1.** `experiment1_ablation/README.md`'s own result: both
+ablated *and* shuffled collapse to exactly 0.0% on every task. A wrong
+frame is exactly as fatal as no frame at all. If the action-decoder didn't
+read out forecast content (explanation (b)), a wrong-episode frame should
+land somewhere in between "no signal" and "correct signal" in its effect —
+instead it's indistinguishable from having no signal, the strongest
+possible evidence that content is read out and used. That leaves (a) as
+the only explanation consistent with both experiments: **mimic-video's own
+video-diffusion forecast is already close enough to correct that the
+oracle's perfect version barely changes the decision.** Unlike F1-VLA
+(structural dependency, content-blind) or LDA-1B (open, see that model's
+own doc), mimic-video's foresight computation is doing real, accurate,
+load-bearing work — the opposite verdict from F1-VLA, reached by the same
+two-experiment logic.
+
+**Caveats.** Single run, n=36 successful-episode samples for the filtered
+comparison — same small-sample caveat as everything else in this document;
+worth an independent repeat. sd is large relative to the mean for the
+action-L1 numbers (0.04-0.05 sd on a 0.03-0.05 mean) — the *direction* of
+the effect (oracle much closer to self-imagined than to zero) is clear,
+the precise ratio less so.
+
 ## Not pursued (a deliberate scope decision, not an oversight)
 
 - **Closed-loop success-rate evaluation with the oracle actually

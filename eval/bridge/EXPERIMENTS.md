@@ -36,13 +36,24 @@ LDA-1B forks, each with a model-specific implementation.
   mimic-video's own paper (arXiv:2512.15692, Section III / Fig. 2) — this
   model's own authors already ran a version of this. **A live,
   randomized-rollout probe is done**, rerun 2026-08-21 at the corrected
-  `stop=1` operating point (two independent runs agree closely): oracle L1
-  now comes out slightly *worse* than the trivial "arm doesn't move"
-  baseline — a sign flip from the `stop=23` reading (slightly better),
-  flagged as a real but small-sample observation, not yet treated as
-  settled — see `experiment2_oracle/ORACLE_EXPERIMENT.md`'s update section.
-  (An earlier offline replay-based probe also existed; retired to
-  `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a citable result.)
+  `stop=1` operating point (two independent runs agree closely): oracle's
+  predicted *position* comes out slightly *worse* than the trivial "arm
+  doesn't move" baseline at matching the real achieved position — a sign
+  flip from the `stop=23` reading (slightly better), flagged as a real but
+  small-sample observation, not yet treated as settled.
+  **2026-08-22: added the construction that actually matches F1-VLA's and
+  LDA-1B's own Exp2** (oracle's predicted *action* vs. the real driving
+  model's own action, not composed into a position) — oracle lands ~5-9x
+  closer to the real policy's own action than a zero-action guess does,
+  same shape as F1-VLA's finding. Combined with Exp1's own result (wrong
+  content is exactly as fatal as no content — ablated ≈ shuffled ≈ 0%),
+  this rules out "the decoder ignores content" and leaves only "mimic's own
+  forecast is already close to correct" — the opposite verdict from
+  F1-VLA's structural, content-blind dependency, reached by the same
+  two-experiment logic. See `experiment2_oracle/ORACLE_EXPERIMENT.md`'s
+  2026-08-22 update section. (An earlier offline replay-based probe also
+  existed; retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split, not a
+  citable result.)
   **Closed-loop success rate with the oracle actually driving the robot —
   the actual metric that case study reports — is not being pursued in this
   thesis**, not an outstanding TODO — it needs live human teleoperation per
