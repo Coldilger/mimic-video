@@ -216,6 +216,43 @@ worse than guessing the mean.** Unlike LDA, nonlinearity is not the
 explanation for mimic's current-pose failure — `crossattn_emb` genuinely
 does not encode pose here, under either probe family.
 
+## Untested hypothesis (2026-08-23): real-photo offline replay vs. live simulated rollout
+
+A fifth possible explanation for the current-pose failure, distinct from
+the ones already checked above (pooling design, episode-identity confound,
+data scarcity, nonlinearity) — none of which touched this axis: this
+extraction replays real Bridge camera footage (`bridge_orig_lerobot`, the
+exact dataset mimic-video was finetuned on — expert demonstrations, not
+this model's own behavior), not a live rollout. LDA-1B's own Exp4, by
+contrast, extracts from a live RoboCasa simulator rollout driven by
+LDA-1B's own checkpoint.
+
+**Two genuinely different things are entangled in that comparison, not
+one:** (a) real photograph vs. simulated render, and (b) recorded expert
+trajectory vs. the model's own live behavior. Either could in principle be
+masking a real signal — real-world visual noise/clutter could swamp a
+pose signal a cleaner render would expose, and expert-trajectory
+statistics could differ from what the model itself produces.
+
+**Switching this extraction to a live SimplerEnv-Bridge rollout is not a
+guaranteed fix, and has a real cost of its own worth naming plainly.**
+mimic-video was finetuned and is evaluated on real Bridge photographs —
+that is this model's actual training domain, and the current (real-photo)
+extraction tests it in-distribution. A live SimplerEnv-Bridge rollout uses
+*rendered, simulated* frames mimic-video never trained on — the same
+flavor of domain gap that produced LDA-1B's own 48%→0% Bridge collapse,
+here at presumably much smaller scale (mimic-video's own closed-loop
+success rate on SimplerEnv-Bridge, 47.9% at its real operating point, shows
+real but imperfect sim-to-real transfer, not a wall). Moving Exp4 onto a
+live rollout would trade one asymmetry (different benchmark from LDA) for
+a different one (mimic-video tested out-of-distribution while LDA stays
+in-distribution on RoboCasa) — not clean parity. It could reveal a real
+signal noise was masking, or produce a new negative result for an
+unrelated reason (out-of-distribution inputs), or both effects could
+partially cancel. Genuinely open; not run. Real engineering cost too:
+rewriting `extract_features.py`'s core loop from dataset replay to a
+live-rollout loop, not a one-line change.
+
 ## Not yet done
 
 - [ ] Determine whether an order-of-magnitude-larger episode count closes
