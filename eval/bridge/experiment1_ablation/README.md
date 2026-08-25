@@ -49,6 +49,20 @@ cached, and reused as zeros/constants on every later call — only the very
 first sample in an eval run pays the cost of running the real video
 backbone.
 
+**What this means for what the action decoder actually sees under
+ablation.** Only three things feed `world2action_pipeline`:
+`crossattn_emb` (forced to zero here), `context_timesteps` (real once,
+then a cached constant, data-independent by construction — carries no
+per-sample information at all, not even indirectly), and `state_B_HO_O`
+(real robot proprioception — position/rotation/gripper history). State is
+informative, but it's held identical across every Exp1 condition
+(baseline/ablated/shuffled/oracle), so it can't explain a difference
+*between* them. Net effect: under ablation, the decoder is left with zero
+genuinely-varying visual/world-model signal at all — not "a degraded
+version," a complete absence — decisions come entirely from proprioceptive
+history. This sharpens the closed-loop result below: ablated isn't losing
+some of the foresight channel's information, it's losing all of it.
+
 **Variant 2 (implemented): shuffle the world model's input image across
 episodes.** Unlike F1's KV-cache mechanism, mimic's video-diffusion backbone
 has exactly one input that determines `crossattn_emb`: the image history fed
