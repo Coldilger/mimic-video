@@ -9,6 +9,11 @@ collapses to exactly 0.0% on every task at both settings. (An offline probe
 also ran first; retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split,
 not a citable result, see below.)
 
+**Interpretation under re-check (2026-10-27):** the 0% numbers stand as
+measured, but whether they reflect lost world-model *information* or a
+decoder pushed off-distribution is being tested — see "Ablation sanity
+check" below.
+
 ## What this tests
 
 One hypothesis, two opposite interventions, applied per-model depending on
@@ -366,6 +371,53 @@ the reported operating point for mimic-video's baseline/shuffled/oracle/cost
 numbers throughout this thesis; `stop=23`'s numbers stay in this document
 for provenance (and because the *qualitative* Exp1 finding was independently
 confirmed at both), but are superseded, not deleted.
+
+## Ablation sanity check (advisor review, started 2026-10-27) — in progress
+
+The thesis advisor asked, before the 0% above is attributed to the loss of
+world-model *information*, to check shapes, masks, attention, activation
+values, and whether the action branch still runs correctly under each
+ablation. The standard concern (Heimersheim & Nanda 2024, *How to use and
+interpret activation patching*) is that zero-ablation can push a network
+off its activation distribution, so a collapse can mean "the computation
+broke", not "the information was used". Mean- or resample-ablation is the
+usual control.
+
+**Findings from reading the code (not yet measured — hypotheses to test,
+not results):**
+
+1. **Zero-ablation does not deliver "nothing" to the decoder.**
+   `world2action_dit.py` applies `self.ctx_norm = nn.LayerNorm(D)` (affine)
+   to `crossattn_emb` before any cross-attention. A zero input normalizes to
+   exactly the LayerNorm's learned bias β, identical for every token. Keys
+   are then identical across tokens, so cross-attention is uniform and
+   returns one constant vector, `v_proj(β)`, at every step. The decoder
+   therefore sees a specific constant context it never saw in training.
+2. **That constant is out of distribution by construction.** Training
+   drops out the proprio *state* embedding (`obs_dropout=0.2`,
+   `world2action_model.py`), never the video context — so the decoder was
+   never trained to act without (or with a constant) `crossattn_emb`.
+3. **The shuffle condition mixes two perturbations.** The image history is
+   a 5-frame deque (`--vam-img-horizon 5`) and `VAMShuffledInference`
+   draws a new pool frame on *every* control step. At each replan the video
+   backbone therefore sees five frames from up to five unrelated episodes:
+   not "a coherent clip from another episode" but a temporally incoherent
+   clip. "Wrong content" and "no temporal coherence" are confounded.
+4. Checked and fine: the pool frames go through the same
+   `VAMInference._process_image` as live frames; the decoder's
+   cross-attention is built with `attn_mask_type="no_mask"`, so an all-zero
+   context cannot produce a fully masked (NaN) softmax.
+
+**Planned measurement** (`ablation_sanity/`, runs along a real baseline
+rollout so every condition is evaluated on identical inputs): per replan,
+record raw and post-`ctx_norm` statistics of `crossattn_emb`, the
+cross-attention entropy of every decoder block, and the decoded actions
+under: real, zero (as above), mean-ablation (mean real context over other
+episodes), norm-matched noise, stale context (first replan of the episode),
+per-step shuffle (as above), and coherent shuffle (one other episode's
+consecutive frames). Closed-loop runs follow only for the conditions that
+separate "information removed" from "computation broken" (mean-ablation,
+coherent shuffle).
 
 ## Not yet done
 
