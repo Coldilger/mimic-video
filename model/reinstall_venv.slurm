@@ -95,6 +95,18 @@ uv pip install \
   "cmake>=3.29.0.1"
 echo "DEPS_INSTALL_EXIT=$?"
 
+# SimplerEnv + ManiSkill2_real2sim (the Bridge eval simulator), per the
+# repo README's "SIMPLER Bridge" install steps -- not in pyproject.toml, so a
+# from-scratch rebuild without this step can't run any eval (found on the
+# 2026-10 rebuild: ModuleNotFoundError: mani_skill2_real2sim). Neither
+# requirements file pins torch, so this doesn't disturb the apex/TE build.
+echo "=== install SimplerEnv + ManiSkill2_real2sim ==="
+cd /home/3295540/mimic-video/eval/bridge
+uv pip install -r SimplerEnv/requirements.txt
+uv pip install -e SimplerEnv/ManiSkill2_real2sim
+uv pip install -e SimplerEnv
+echo "SIMPLER_INSTALL_EXIT=$?"
+cd /home/3295540/mimic-video/model
 echo "=== final sanity check ==="
 .venv/bin/python3 -c "
 import torch, numpy, scipy, transformers, accelerate, lerobot, av, datasets
