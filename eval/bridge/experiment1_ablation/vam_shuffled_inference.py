@@ -25,9 +25,9 @@ import sys
 
 import numpy as np
 
-MIMIC_ROOT = pathlib.Path("/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video")
+MIMIC_ROOT = pathlib.Path("/home/3295540/mimic-video")
 sys.path.insert(0, str(MIMIC_ROOT / "eval/bridge/SimplerEnv"))
-sys.path.insert(0, "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv")
+sys.path.insert(0, "/home/3295540/mimic-video/eval/bridge/SimplerEnv")
 
 from simpler_env.policies.vam.video_action_model import VAMInference  # noqa: E402
 

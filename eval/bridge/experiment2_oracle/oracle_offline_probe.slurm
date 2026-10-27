@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment2_oracle/oracle-offline-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment2_oracle/oracle-offline-%j.out
 
 # Offline oracle probe (Experiment B). Never touches SimplerEnv/ManiSkill2 at
 # runtime (no rendering, no simulator stepping) -- but VAMInference lives in
@@ -25,10 +25,10 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment2_oracle
+cd /home/3295540/mimic-video/eval/bridge/experiment2_oracle
 # venv's bin/activate does not exist (uv sync doesn't create it, and it was
 # a purge casualty besides -- see memory: mimic-video venv reinstall).
 # Invoke the venv's own python directly instead of sourcing activate.
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" oracle_offline_probe.py

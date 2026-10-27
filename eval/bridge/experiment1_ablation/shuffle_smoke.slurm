@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=00:30:00
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/shuffle-smoke-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment1_ablation/shuffle-smoke-%j.out
 
 # Only one model instance (baseline VAMInference, unmodified) is loaded --
 # unlike ablation_smoke.slurm's two (baseline + ablated), which needed
@@ -23,14 +23,14 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+cd /home/3295540/mimic-video/eval/bridge/experiment1_ablation
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" -c "
 from shuffle_offline_probe import run_shuffle_probe
 import pathlib
 run_shuffle_probe(
-    checkpoint_dir=pathlib.Path('/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints'),
+    checkpoint_dir=pathlib.Path('/home/3295540/mimic-video/model/checkpoints'),
     dataset_root=pathlib.Path('/mnt/beegfsnew/scratch/3295540/data/bridge_orig_lerobot'),
     n_episodes=4,
     samples_per_episode=2,

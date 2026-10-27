@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=00:30:00
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment3_cost/timing-smoke-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment3_cost/timing-smoke-%j.out
 
 LIB_DIR="/mnt/beegfsnew/scratch/3295540/local_libs"
 mkdir -p "$LIB_DIR"
@@ -19,7 +19,7 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
-CKPT_DIR="/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints"
+CKPT_DIR="/home/3295540/mimic-video/model/checkpoints"
 EXPERIMENT_NAME="w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256"
 VIDEO_MODEL="${CKPT_DIR}/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused.pt"
 ACTION_MODEL="${CKPT_DIR}/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt"
@@ -27,8 +27,8 @@ STATS="${CKPT_DIR}/dataset_statistics/bridge.json"
 
 VARIANT="${VARIANT:-baseline}"
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment3_cost
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+cd /home/3295540/mimic-video/eval/bridge/experiment3_cost
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" main_inference_timed.py \
   --vam-variant "$VARIANT" \
@@ -36,7 +36,7 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --robot widowx --policy-setup widowx_bridge \
   --control-freq 5 --sim-freq 500 --max-episode-steps 60 \
   --env-name PutCarrotOnPlateInScene-v0 --scene-name bridge_table_1_v1 \
-  --rgb-overlay-path /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
+  --rgb-overlay-path /home/3295540/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
   --robot-init-x 0.147 0.147 1 --robot-init-y 0.028 0.028 1 \
   --obj-variation-mode episode --obj-episode-range 0 3 \
   --additional-env-save-tags "timing_smoke_${VARIANT}_${SLURM_JOB_ID}" \

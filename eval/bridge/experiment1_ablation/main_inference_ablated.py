@@ -9,7 +9,7 @@ import pathlib
 
 import numpy as np
 
-sys.path.insert(0, "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv")
+sys.path.insert(0, "/home/3295540/mimic-video/eval/bridge/SimplerEnv")
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from simpler_env.evaluation.argparse import get_args  # noqa: E402

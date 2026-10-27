@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=01:00:00
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment4_probing/probes-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment4_probing/probes-%j.out
 
 # Trains the probe head on both checkpoint variants' frozen features and
 # prints each against its own no-motion and mean-predictor references.
@@ -19,8 +19,8 @@
 # attributable to the backbone that produced the features.
 
 set -u
-DIR=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment4_probing
-PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+DIR=/home/3295540/mimic-video/eval/bridge/experiment4_probing
+PY=/home/3295540/mimic-video/model/.venv/bin/python3
 cd "$DIR"
 
 for VARIANT in finetuned pretrained; do

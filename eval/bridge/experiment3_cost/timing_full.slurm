@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=00:50:00
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment3_cost/timing-full-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment3_cost/timing-full-%j.out
 
 # Full-scale version of timing_smoke.slurm: 4 episodes instead of 3
 # (~48 replans instead of 36, matching F1-VLA's n=45 -- see
@@ -33,7 +33,7 @@ export DISPLAY=""
 # not an OOM or wall-clock timeout. Hard limit is unlimited, so just raise it.
 ulimit -t unlimited
 
-CKPT_DIR="/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints"
+CKPT_DIR="/home/3295540/mimic-video/model/checkpoints"
 EXPERIMENT_NAME="w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256"
 VIDEO_MODEL="${CKPT_DIR}/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused.pt"
 ACTION_MODEL="${CKPT_DIR}/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt"
@@ -41,8 +41,8 @@ STATS="${CKPT_DIR}/dataset_statistics/bridge.json"
 
 VARIANT="${VARIANT:-baseline}"
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment3_cost
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+cd /home/3295540/mimic-video/eval/bridge/experiment3_cost
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" main_inference_timed.py \
   --vam-variant "$VARIANT" \
@@ -50,7 +50,7 @@ VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.ve
   --robot widowx --policy-setup widowx_bridge \
   --control-freq 5 --sim-freq 500 --max-episode-steps 60 \
   --env-name PutCarrotOnPlateInScene-v0 --scene-name bridge_table_1_v1 \
-  --rgb-overlay-path /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
+  --rgb-overlay-path /home/3295540/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png \
   --robot-init-x 0.147 0.147 1 --robot-init-y 0.028 0.028 1 \
   --obj-variation-mode episode --obj-episode-range 0 4 \
   --additional-env-save-tags "timing_full_${VARIANT}_${SLURM_JOB_ID}" \

@@ -8,7 +8,7 @@
 # medium_gpua100's MIG slices cannot initialise the Vulkan renderer that the
 # mimic stack pulls in (segfault, job 629618) -- H100/H200 only.
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment4_probing/extract-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment4_probing/extract-%j.out
 
 # Extracts frozen crossattn_emb features + future-pose targets for one
 # checkpoint variant. Each sample runs the full video-diffusion backbone
@@ -22,7 +22,7 @@ set -u
 N_EPISODES="${N_EPISODES:-40}"
 SAMPLES_PER_EPISODE="${SAMPLES_PER_EPISODE:-10}"
 HORIZON="${HORIZON:-5}"
-DIR=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment4_probing
+DIR=/home/3295540/mimic-video/eval/bridge/experiment4_probing
 OUT="${OUT:-$DIR/features_${VARIANT}.npz}"
 
 export HF_HOME=/mnt/beegfsnew/scratch/3295540/hf_cache
@@ -43,7 +43,7 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 
 cd "$DIR"
-/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3 \
+/home/3295540/mimic-video/model/.venv/bin/python3 \
   extract_features.py \
   --variant "$VARIANT" \
   --out "$OUT" \

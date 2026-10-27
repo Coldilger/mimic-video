@@ -14,13 +14,13 @@ import sys
 
 import numpy as np
 
-SIMPLER_ENV_ROOT = "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv"
+SIMPLER_ENV_ROOT = "/home/3295540/mimic-video/eval/bridge/SimplerEnv"
 sys.path.insert(0, SIMPLER_ENV_ROOT)
 
 from simpler_env.evaluation.argparse import get_args  # noqa: E402
 from simpler_env.evaluation.maniskill2_evaluator import maniskill2_evaluator  # noqa: E402
 
-REPO_ROOT = "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video"
+REPO_ROOT = "/home/3295540/mimic-video"
 sys.path.insert(0, os.path.join(REPO_ROOT, "eval/bridge/experiment1_ablation"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

@@ -51,7 +51,7 @@ from collections import deque
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-sys.path.insert(0, "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv")
+sys.path.insert(0, "/home/3295540/mimic-video/eval/bridge/SimplerEnv")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from simpler_env.evaluation.argparse import get_args  # noqa: E402

@@ -68,7 +68,7 @@ else
     echo "FFmpeg already present."
 fi
 # 2. Go to the evaluation directory
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge
+cd /home/3295540/mimic-video/eval/bridge
 # 3. Activate the environment (suppress errors if any)
 deactivate 2>/dev/null
 source ../../model/.venv/bin/activate

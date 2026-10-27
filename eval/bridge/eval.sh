@@ -34,7 +34,7 @@ launch() {
   ) &
 }
 
-checkpoint_dir="/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints"
+checkpoint_dir="/home/3295540/mimic-video/model/checkpoints"
 
 declare -A ftcosmos=(
   [img_h]=5

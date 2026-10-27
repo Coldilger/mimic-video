@@ -6,7 +6,7 @@
 #SBATCH --mem=128G
 #SBATCH --time=02:00:00
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/ablation-offline-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment1_ablation/ablation-offline-%j.out
 
 # Full run: 24 episodes x 5 samples/episode (script defaults), matching
 # oracle_offline_probe.py's protocol for direct comparability. --mem=128G
@@ -24,7 +24,7 @@ fi
 export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export DISPLAY=""
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+cd /home/3295540/mimic-video/eval/bridge/experiment1_ablation
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" ablation_offline_probe.py

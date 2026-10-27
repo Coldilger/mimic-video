@@ -30,7 +30,7 @@ import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-MIMIC_ROOT = pathlib.Path("/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video")
+MIMIC_ROOT = pathlib.Path("/home/3295540/mimic-video")
 sys.path.insert(0, str(MIMIC_ROOT / "eval/bridge/SimplerEnv"))
 sys.path.insert(0, str(MIMIC_ROOT / "model"))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))

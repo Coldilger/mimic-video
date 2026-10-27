@@ -11,7 +11,7 @@
 # eval_ablated.slurm, which IS nearly free) timed out at ~20/24 episodes
 # on the 60-step tasks and would fare worse on Eggplant's 120-step budget.
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation/eval-shuffled-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment1_ablation/eval-shuffled-%j.out
 
 # One task x one seed x 24 episodes of closed-loop SimplerEnv rollout,
 # shuffled (wrong-episode real input) condition -- variant 2 closed-loop. Matches the
@@ -38,7 +38,7 @@ export LD_LIBRARY_PATH="$LIB_DIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 export DISPLAY=""
 ulimit -t unlimited
 
-CKPT_DIR="/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/checkpoints"
+CKPT_DIR="/home/3295540/mimic-video/model/checkpoints"
 EXPERIMENT_NAME="w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256"
 VIDEO_MODEL="${CKPT_DIR}/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused.pt"
 ACTION_MODEL="${CKPT_DIR}/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt"
@@ -48,13 +48,13 @@ case "$TASK" in
   PutCarrotOnPlateInScene-v0|PutSpoonOnTableClothInScene-v0|StackGreenCubeOnYellowCubeBakedTexInScene-v0)
     ROBOT=widowx
     SCENE=bridge_table_1_v1
-    OVERLAY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png
+    OVERLAY=/home/3295540/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_real_eval_1.png
     INIT_X=0.147; INIT_Y=0.028; MAX_STEPS=60
     ;;
   PutEggplantInBasketScene-v0)
     ROBOT=widowx_sink_camera_setup
     SCENE=bridge_table_1_v2
-    OVERLAY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_sink.png
+    OVERLAY=/home/3295540/mimic-video/eval/bridge/SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/bridge_sink.png
     INIT_X=0.127; INIT_Y=0.06; MAX_STEPS=120
     ;;
   *)
@@ -62,8 +62,8 @@ case "$TASK" in
     ;;
 esac
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment1_ablation
-VENV_PY=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/.venv/bin/python3
+cd /home/3295540/mimic-video/eval/bridge/experiment1_ablation
+VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
 
 "$VENV_PY" main_inference_shuffled.py \
   --ckpt-path "mimic_shuffled" \

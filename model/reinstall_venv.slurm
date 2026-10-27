@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH --exclude=gnode07
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/reinstall-venv-%j.out
+#SBATCH --output=/home/3295540/mimic-video/model/reinstall-venv-%j.out
 
 # Full from-scratch rebuild recipe for model/.venv, proven working
 # 2026-08-16 after model/.venv got gutted twice by the /scratch purge
@@ -42,7 +42,7 @@ if [ ! -f "$CUDA_HOME/include/cudnn.h" ]; then
   conda install -n cuda129 -c nvidia cudnn -y
 fi
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model
+cd /home/3295540/mimic-video/model
 
 echo "=== wiping .venv entirely (not git-tracked, safe to rebuild) ==="
 rm -rf .venv

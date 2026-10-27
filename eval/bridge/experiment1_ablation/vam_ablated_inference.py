@@ -12,7 +12,7 @@ import sys
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-sys.path.insert(0, "/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/SimplerEnv")
+sys.path.insert(0, "/home/3295540/mimic-video/eval/bridge/SimplerEnv")
 
 from simpler_env.policies.vam.video_action_model import VAMInference  # noqa: E402
 

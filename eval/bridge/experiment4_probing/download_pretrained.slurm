@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=04:00:00
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/eval/bridge/experiment4_probing/download-%j.out
+#SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment4_probing/download-%j.out
 
 # Downloads the pretrained_cosmos_bridge checkpoint for Experiment 4's
 # memorization-robustness comparison. The two Bridge checkpoints differ
@@ -26,7 +26,7 @@ set -euo pipefail
 export HF_HOME=/mnt/beegfsnew/scratch/3295540/hf_cache
 export HF_HUB_DISABLE_XET=1
 
-cd /mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model
+cd /home/3295540/mimic-video/model
 .venv/bin/python scripts/download_checkpoints.py --models pretrained_cosmos_bridge
 
 echo "DOWNLOAD_EXIT=$?"

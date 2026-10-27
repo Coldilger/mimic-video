@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=02:00:00
-#SBATCH --output=/mnt/beegfsnew/scratch/3295540/mimic-video-project/mimic-video/model/reinstall-venv2-%j.out
+#SBATCH --output=/home/3295540/mimic-video/model/reinstall-venv2-%j.out
 
 # Third attempt. Attempts 1/2 (jobs 627691/627693) failed building apex:
 # torch resolves to 2.8.0+cu129 on x86_64 regardless of --extra chosen
