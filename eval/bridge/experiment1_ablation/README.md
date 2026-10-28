@@ -458,6 +458,26 @@ the decoder's computation itself breaks. Mean-ablation, stale and both
 shuffles keep the decoder on-manifold (normal attention entropy, valid
 rotations).
 
+**Mask / attention test (2026-10-28, `ablation_sanity/mask_attention_test.py`,
+results in `mask_attention_test.json`).** Two claims above rested on reading
+the code — that the decoder's cross-attention has no mask, and that the
+fused kernel computes plain softmax attention (so the recomputed entropy is
+the real one). Tested on the real model, 5 real Bridge frames, all 24
+decoder blocks, 19,200 context tokens:
+
+| check | real context | zero context |
+|---|---|---|
+| kernel output vs manual mask-free softmax attention (max relative error) | 1.8e-3 (bf16 precision) | 0 |
+| perturbing one context token at positions 0 / 4800 / 9600 / 14400 / 19199 changes the real module's output | yes, every position (smallest relative change 1.5e-3) | yes, every position |
+| attention weights | 5e-11 … 0.26 | exactly 1/19,200 for every token (uniform) |
+| control: same perturbation on a deliberately masked position (manual attention) | 0 change | 0 change |
+
+So there is no mask, the kernel is standard softmax attention, and under
+zero-ablation attention is exactly uniform. Caveat: no unperturbed re-run of
+the kernel was done, so the smallest real-context change (1.5e-3) is not
+separated from kernel nondeterminism by a direct measurement; the masked
+control giving exactly 0 shows the test can detect a mask.
+
 **Closed loop, paired (baseline 46/96 = 47.9%, Wilson 95% [38.2, 57.8]):**
 
 | condition | successes | paired difference [95% CI] | moved the correct object |

@@ -12,6 +12,8 @@
 set -euo pipefail
 ulimit -t unlimited
 export HF_HOME=/mnt/beegfsnew/scratch/3295540/hf_cache
+# importing simpler_env loads sapien, which needs libvulkan (same as the eval scripts)
+export LD_LIBRARY_PATH=/mnt/beegfsnew/scratch/3295540/local_libs/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}
 cd /home/3295540/mimic-video/eval/bridge/SimplerEnv
 /home/3295540/mimic-video/model/.venv/bin/python3 \
   /home/3295540/mimic-video/eval/bridge/experiment1_ablation/ablation_sanity/mask_attention_test.py
