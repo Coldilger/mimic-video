@@ -466,8 +466,8 @@ rotations).
 | zero | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
 | per-step shuffle | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
 | coherent shuffle | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
-| task mean | 0/72 (Eggplant pending) | −34.7 pp [−44.4, −25.0] (3 tasks) | 0/72 |
-| stale | pending | | |
+| task mean | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
+| stale (first replan's real context) | 0/96 | −47.9 pp [−56.2, −39.6] | 12/96 (grasped 4/96) |
 
 Exact McNemar p < 0.0001 for every completed condition (all discordant
 pairs are baseline-only). The rerun baseline reproduces the August
@@ -482,6 +482,12 @@ pairs are baseline-only). The rerun baseline reproduces the August
 2. Temporal incoherence is **not** the explanation for the shuffle result:
    a coherent clip from another episode is exactly as fatal as the per-step
    mix.
+4. An *outdated* forecast of the right episode is also fatal, but not
+   content-free: reusing the episode's first-replan context gives 0/96
+   successes yet still moves the correct object in 12/96 episodes (grasps
+   it in 4/96) — the only intervention with any partial progress. The
+   decoder needs a forecast that is both correct and current. This is the
+   natural entry point for Experiment 7 (horizon-shifted foresight).
 3. Exp1's qualitative conclusion for mimic-video therefore stands, on firmer
    ground: the action decoder depends on the *content* of the current,
    correct forecast. For reporting, the shuffle and mean conditions are the
