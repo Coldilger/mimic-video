@@ -1,0 +1,4 @@
+mean PutCarrotOnPlateInScene-v0 723612
+mean PutSpoonOnTableClothInScene-v0 723613
+mean StackGreenCubeOnYellowCubeBakedTexInScene-v0 723614
+mean PutEggplantInBasketScene-v0 723629

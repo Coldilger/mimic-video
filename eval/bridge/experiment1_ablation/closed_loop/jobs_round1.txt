@@ -1,0 +1,16 @@
+baseline PutCarrotOnPlateInScene-v0 723507
+baseline PutSpoonOnTableClothInScene-v0 723508
+baseline StackGreenCubeOnYellowCubeBakedTexInScene-v0 723509
+baseline PutEggplantInBasketScene-v0 723510
+zero PutCarrotOnPlateInScene-v0 723511
+zero PutSpoonOnTableClothInScene-v0 723512
+zero StackGreenCubeOnYellowCubeBakedTexInScene-v0 723513
+zero PutEggplantInBasketScene-v0 723514
+shuffle_perstep PutCarrotOnPlateInScene-v0 723515
+shuffle_perstep PutSpoonOnTableClothInScene-v0 723516
+shuffle_perstep StackGreenCubeOnYellowCubeBakedTexInScene-v0 723517
+shuffle_perstep PutEggplantInBasketScene-v0 723518
+coherent PutCarrotOnPlateInScene-v0 723519
+coherent PutSpoonOnTableClothInScene-v0 723520
+coherent StackGreenCubeOnYellowCubeBakedTexInScene-v0 723521
+coherent PutEggplantInBasketScene-v0 723522

@@ -1,0 +1,4 @@
+stale PutCarrotOnPlateInScene-v0 723631
+stale PutSpoonOnTableClothInScene-v0 723632
+stale StackGreenCubeOnYellowCubeBakedTexInScene-v0 723633
+stale PutEggplantInBasketScene-v0 723634

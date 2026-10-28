@@ -9,10 +9,11 @@ collapses to exactly 0.0% on every task at both settings. (An offline probe
 also ran first; retired to `OFFLINE_PROBE_BACKLOG.md` — no held-out split,
 not a citable result, see below.)
 
-**Interpretation under re-check (2026-10-27):** the 0% numbers stand as
-measured, but whether they reflect lost world-model *information* or a
-decoder pushed off-distribution is being tested — see "Ablation sanity
-check" below.
+**Re-checked 2026-10-28 (advisor review):** zero-ablation does push the
+decoder off its activation distribution, so its 0% alone is not clean
+evidence — but on-distribution controls (task-mean context, coherent and
+per-step shuffle) collapse to 0% just as completely in a paired rerun. The
+content-dependence conclusion holds; see "Ablation sanity check" below.
 
 ## What this tests
 
@@ -418,6 +419,74 @@ per-step shuffle (as above), and coherent shuffle (one other episode's
 consecutive frames). Closed-loop runs follow only for the conditions that
 separate "information removed" from "computation broken" (mean-ablation,
 coherent shuffle).
+
+### Results (2026-10-28)
+
+**Setup.** Diagnostic: `ablation_sanity/` on all 4 tasks × 24 episodes at
+`stop=1` (Carrot: 22, its first two episodes were the smoke test). The
+diagnostic drives a normal baseline rollout — its success rates match the
+baseline exactly (37.5 / 50.0 / 16.7 / 87.5%), and the driving action
+equals the "real" condition to machine precision. 1416 replans in total;
+records in `ablation_sanity/records/`, table in `ablation_sanity/summary.md`.
+Closed loop: `closed_loop/closed_loop.slurm`, one script for every
+condition, same 24 episodes per task, compared episode by episode with
+`../paired_stats.py` (thesis protocol: paired differences, Wilson CIs,
+stratified paired bootstrap, exact McNemar).
+
+**Diagnostic, identical inputs (means over 1416 replans):**
+
+| context | attention entropy (1 = uniform) | tokens identical? (mean cos) | translation | rotation validity error | decoder state |
+|---|---|---|---|---|---|
+| real | 0.74 | 0.14 | 0.045 | 0.006 | — |
+| zero (Exp1 variant 1) | **1.00** | **1.00** | **0.007** | **0.055** | broken |
+| norm-matched noise | 0.84 | 0.01 | **0.010** | **0.052** | broken |
+| task mean (mean-ablation) | 0.81 | 0.17 | **0.008** | 0.006 | valid, near-static |
+| stale (first replan's) | 0.77 | 0.13 | 0.079 | 0.006 | valid |
+| per-step shuffle (Exp1 variant 2) | 0.77 | 0.12 | 0.036 | 0.005 | valid |
+| coherent shuffle | 0.75 | 0.11 | 0.050 | 0.005 | valid |
+
+(translation: mean norm of the predicted position deltas; rotation validity:
+mean |column norm − 1| of the predicted 6D rotation, 0 for a valid rotation.
+No condition produced NaNs.)
+
+The code-reading findings are confirmed: under zero-ablation every context
+token is identical after `ctx_norm` and cross-attention is exactly uniform.
+Zero and noise also push the decoder off-manifold: its rotations become
+invalid (~9× the real error) and it barely moves. **So Exp1's zero-ablation
+0% cannot by itself be read as "the world-model information was used"** —
+the decoder's computation itself breaks. Mean-ablation, stale and both
+shuffles keep the decoder on-manifold (normal attention entropy, valid
+rotations).
+
+**Closed loop, paired (baseline 46/96 = 47.9%, Wilson 95% [38.2, 57.8]):**
+
+| condition | successes | paired difference [95% CI] | moved the correct object |
+|---|---|---|---|
+| baseline (rerun) | 46/96 | — | 64/96 |
+| zero | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
+| per-step shuffle | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
+| coherent shuffle | 0/96 | −47.9 pp [−56.2, −39.6] | 0/96 |
+| task mean | 0/72 (Eggplant pending) | −34.7 pp [−44.4, −25.0] (3 tasks) | 0/72 |
+| stale | pending | | |
+
+Exact McNemar p < 0.0001 for every completed condition (all discordant
+pairs are baseline-only). The rerun baseline reproduces the August
+`stop=1` numbers on every task.
+
+**What this means.**
+1. The 0% collapse is **not** an artifact of breaking the decoder: the
+   on-manifold controls collapse just as completely. Mean-ablation gives a
+   valid but almost motionless policy — the average forecast carries no
+   usable plan. Both shuffles give valid, normally sized motions that never
+   even touch the correct object — the decoder follows the wrong forecast.
+2. Temporal incoherence is **not** the explanation for the shuffle result:
+   a coherent clip from another episode is exactly as fatal as the per-step
+   mix.
+3. Exp1's qualitative conclusion for mimic-video therefore stands, on firmer
+   ground: the action decoder depends on the *content* of the current,
+   correct forecast. For reporting, the shuffle and mean conditions are the
+   citable evidence; the zero-ablation number should be quoted only with
+   the off-manifold caveat above.
 
 ## Not yet done
 
