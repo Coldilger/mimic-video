@@ -1,0 +1,70 @@
+/home/3295540/mimic-video/model/.venv/lib/python3.10/site-packages/sapien/core/renderer_config.py:4: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+[WARNING  | root               ]: Supported flash-attn versions are >= 2.1.1, <= 2.6.3. Found flash-attn 2.8.3.
+[11-07 21:25:24|CRITICAL|../../../model/imaginaire/utils/config_helper.py:171:import_all_modules_from_package] Reloading all modules from package cosmos_predict2.configs.experiment
+[11-07 21:25:25|CRITICAL|../../../model/cosmos_predict2/configs/config.py:91:make_config] Finished importing config modules.
+[11-07 21:25:27|WARNING|../../../model/cosmos_predict2/pipelines/video2world.py:277:from_config] precision torch.bfloat16
+[11-07 21:25:28|INFO|../../../model/cosmos_predict2/tokenizers/tokenizer.py:687:_video_vae] Loading /mnt/beegfsnew/scratch/3295540/mimic-video/model/checkpoints/video_backbone//tokenizer/tokenizer.pth
+[11-07 21:25:28|SUCCESS|../../../model/cosmos_predict2/tokenizers/tokenizer.py:689:_video_vae] Successfully loaded /mnt/beegfsnew/scratch/3295540/mimic-video/model/checkpoints/video_backbone//tokenizer/tokenizer.pth
+[11-07 21:28:17|INFO|../../../model/imaginaire/auxiliary/text_encoder.py:70:__init__] T5 Text encoder model instantiated
+[11-07 21:28:17|INFO|../../../model/cosmos_predict2/pipelines/video2world.py:335:from_config] Loading DiT from /home/3295540/mimic-video/model/checkpoints/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused.pt
+[11-07 21:28:26|SUCCESS|../../../model/cosmos_predict2/pipelines/video2world.py:354:from_config] Successfully loaded DiT from /home/3295540/mimic-video/model/checkpoints/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused.pt
+[11-07 21:28:26|WARNING|../../../model/cosmos_predict2/pipelines/world2action.py:71:from_config] precision torch.bfloat16
+[11-07 21:28:27|INFO|../../../model/cosmos_predict2/pipelines/world2action.py:86:from_config] Loading DiT from /home/3295540/mimic-video/model/checkpoints/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt
+[11-07 21:28:29|SUCCESS|../../../model/cosmos_predict2/pipelines/world2action.py:96:from_config] Successfully loaded DiT from /home/3295540/mimic-video/model/checkpoints/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt
+[WARNING  | root               ]: 
+The dataset you requested (bridge_orig_lerobot) is in 2.0 format.
+While current version of LeRobot is backward-compatible with it, the version of your dataset still uses global
+stats instead of per-episode stats. Update your dataset stats to the new format using this command:
+```
+python -m lerobot.datasets.v21.convert_dataset_v20_to_v21 --repo-id=bridge_orig_lerobot
+```
+
+If you encounter a problem, contact LeRobot maintainers on [Discord](https://discord.com/invite/s3KuuzsPFb)
+or open an [issue on GitHub](https://github.com/huggingface/lerobot/issues/new/choose).
+
+[WARNING  | root               ]: 
+The dataset you requested (bridge_orig_lerobot) is in 2.0 format.
+While current version of LeRobot is backward-compatible with it, the version of your dataset still uses global
+stats instead of per-episode stats. Update your dataset stats to the new format using this command:
+```
+python -m lerobot.datasets.v21.convert_dataset_v20_to_v21 --repo-id=bridge_orig_lerobot
+```
+
+If you encounter a problem, contact LeRobot maintainers on [Discord](https://discord.com/invite/s3KuuzsPFb)
+or open an [issue on GitHub](https://github.com/huggingface/lerobot/issues/new/choose).
+
+/home/3295540/mimic-video/model/.venv/lib/python3.10/site-packages/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+clips: 16
+Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:30,  1.10it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.16it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.13it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  4.98it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.11it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.02it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.06it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.05it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.02it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.00it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.02it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  4.99it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.05it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.09it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  4.97it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        Generating world:   0%|          | 0/35 [00:00<?, ?it/s]Generating world:   3%|▎         | 1/35 [00:00<00:06,  5.03it/s]                                                                Generating world:   0%|          | 0/35 [00:00<?, ?it/s]                                                        ep 41258 t=4 'put knife in pot or pan': mixing rel 0.816 | full 0.000 | full_repeat 0.000 | obs_only 0.479 | cur_from_full 0.599 | fut_from_full 0.155 | obs_only_pad 0.621 | full_fut_mean 0.617
+ep 41258 t=10 'put knife in pot or pan': mixing rel 0.819 | full 0.000 | full_repeat 0.000 | obs_only 0.361 | cur_from_full 0.494 | fut_from_full 0.056 | obs_only_pad 0.437 | full_fut_mean 0.171
+ep 44342 t=4 'end effector reaching stuffedrabbit': mixing rel 0.779 | full 0.000 | full_repeat 0.000 | obs_only 0.146 | cur_from_full 0.058 | fut_from_full 0.017 | obs_only_pad 0.022 | full_fut_mean 0.043
+ep 44342 t=8 'end effector reaching stuffedrabbit': mixing rel 0.772 | full 0.000 | full_repeat 0.000 | obs_only 0.162 | cur_from_full 0.263 | fut_from_full 0.069 | obs_only_pad 0.066 | full_fut_mean 0.020
+ep 11979 t=4 'fold the cloth from bottom right to top ': mixing rel 0.811 | full 0.000 | full_repeat 0.000 | obs_only 0.223 | cur_from_full 0.291 | fut_from_full 0.031 | obs_only_pad 0.305 | full_fut_mean 0.297
+ep 11979 t=15 'fold the cloth from bottom right to top ': mixing rel 0.806 | full 0.000 | full_repeat 0.000 | obs_only 0.365 | cur_from_full 0.600 | fut_from_full 0.062 | obs_only_pad 0.419 | full_fut_mean 0.407
+ep 47721 t=4 'move the yellow banana to the top left o': mixing rel 0.777 | full 0.000 | full_repeat 0.000 | obs_only 0.448 | cur_from_full 0.576 | fut_from_full 0.045 | obs_only_pad 0.592 | full_fut_mean 0.587
+ep 47721 t=14 'move the yellow banana to the top left o': mixing rel 0.774 | full 0.000 | full_repeat 0.000 | obs_only 0.354 | cur_from_full 0.556 | fut_from_full 0.053 | obs_only_pad 0.425 | full_fut_mean 0.081
+ep 30758 t=4 'Open the drawer': mixing rel 0.787 | full 0.000 | full_repeat 0.000 | obs_only 0.212 | cur_from_full 0.278 | fut_from_full 0.039 | obs_only_pad 0.280 | full_fut_mean 0.277
+ep 30758 t=22 'Open the drawer': mixing rel 0.784 | full 0.000 | full_repeat 0.000 | obs_only 0.233 | cur_from_full 0.598 | fut_from_full 0.016 | obs_only_pad 0.175 | full_fut_mean 0.405
+ep 33246 t=4 'move the blue handled object to the righ': mixing rel 0.776 | full 0.000 | full_repeat 0.000 | obs_only 0.236 | cur_from_full 0.280 | fut_from_full 0.051 | obs_only_pad 0.306 | full_fut_mean 0.301
+ep 33246 t=23 'move the blue handled object to the righ': mixing rel 0.775 | full 0.000 | full_repeat 0.000 | obs_only 0.438 | cur_from_full 0.426 | fut_from_full 0.081 | obs_only_pad 0.542 | full_fut_mean 0.223
+ep 36389 t=4 'move the yellow clothe beside to the ora': mixing rel 0.831 | full 0.000 | full_repeat 0.000 | obs_only 0.199 | cur_from_full 0.108 | fut_from_full 0.018 | obs_only_pad 0.117 | full_fut_mean 0.101
+ep 36389 t=14 'move the yellow clothe beside to the ora': mixing rel 0.822 | full 0.000 | full_repeat 0.000 | obs_only 0.207 | cur_from_full 0.129 | fut_from_full 0.016 | obs_only_pad 0.117 | full_fut_mean 0.082
+ep 50254 t=4 'move sushi into bowl': mixing rel 0.786 | full 0.000 | full_repeat 0.000 | obs_only 0.267 | cur_from_full 0.326 | fut_from_full 0.027 | obs_only_pad 0.336 | full_fut_mean 0.330
+ep 50254 t=23 'move sushi into bowl': mixing rel 0.782 | full 0.000 | full_repeat 0.000 | obs_only 0.370 | cur_from_full 0.540 | fut_from_full 0.056 | obs_only_pad 0.443 | full_fut_mean 0.175
+
+shapes: full [1, 16, 30, 40, 2048] obs_only [1, 2, 30, 40, 2048]
+observed tokens, full vs obs_only: rel L2 0.793 ± 0.020, cosine 0.665
+sigma full 68.325, obs_only 68.325
+| condition | tokens | rel L2 to full | obs attn mass | translation | rot6 err | gripper | NaN |
+|---|---|---|---|---|---|---|---|
+| full | 19200 | 0.000 ± 0.000 | 0.144 | 0.0689 | 0.0070 | 0.700 | 0 |
+| full_repeat | 19200 | 0.000 ± 0.000 | - | 0.0689 | 0.0070 | 0.700 | 0 |
+| obs_only | 2400 | 0.294 ± 0.104 | - | 0.0061 | 0.0099 | 0.735 | 0 |
+| cur_from_full | 2400 | 0.383 ± 0.184 | - | 0.0266 | 0.0099 | 0.689 | 0 |
+| fut_from_full | 16800 | 0.049 ± 0.034 | - | 0.0658 | 0.0074 | 0.701 | 0 |
+| obs_only_pad | 19200 | 0.325 ± 0.181 | 0.167 | 0.0040 | 0.0053 | 1.011 | 0 |
+| full_fut_mean | 19200 | 0.257 ± 0.176 | 0.342 | 0.0188 | 0.0060 | 0.865 | 0 |
+wrote /home/3295540/mimic-video/eval/bridge/experiment1_ablation/ablation_sanity/future_removal_test.json
+FUTURE_RM_EXIT=0

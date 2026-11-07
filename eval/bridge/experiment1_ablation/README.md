@@ -514,6 +514,70 @@ pairs are baseline-only). The rerun baseline reproduces the August
    citable evidence; the zero-ablation number should be quoted only with
    the off-manifold caveat above.
 
+   **Revised 2026-11-07, see the next section.** `crossattn_emb` is the
+   decoder's only view of the scene and the task: it has no image or text
+   input of its own. Every condition above replaced all of it, so they
+   remove perception together with the forecast. "Depends on the forecast"
+   is not separated from "depends on seeing the scene".
+
+### Can the future be removed while keeping perception? (2026-11-07)
+
+`ablation_sanity/future_removal_test.py` (job 745541, results in
+`future_removal_test.json`, log `future-rm-745541.out`). The context has
+16 latent frames × 1200 tokens: tokens 0–2399 are the 2 observed latent
+frames (the 5 input frames), tokens 2400–19199 the 14 future frames. At
+`stop=1` (sigma 68.3 of 80) the future positions start from seed-fixed noise
+that is identical for every input, so whatever they carry beyond that noise
+comes from the observed frames and the prompt through the video model's
+self-attention.
+
+16 real Bridge clips (8 episodes × 2 time points, own task string), same
+robot state and seed for every condition, decoder output compared to the
+unmodified context (`full`). Open loop, no simulator.
+
+| context given to the decoder | tokens | action change vs full (rel. L2) | translation | rotation validity error |
+|---|---|---|---|---|
+| full (as in the policy) | 19200 | 0 (repeat: 0) | 0.069 | 0.007 |
+| future part only (observed tokens dropped) | 16800 | **0.05** | 0.066 | 0.007 |
+| observed part of full only (future dropped after the video model) | 2400 | 0.38 | 0.027 | 0.010 |
+| video model run on the 2 observed frames only, no future positions at all | 2400 | 0.29 | **0.006** | 0.010 |
+| same + other clips' mean future (token count restored) | 19200 | 0.33 | **0.004** | 0.005 |
+| full's observed part + other clips' mean future | 19200 | 0.26 | 0.019 | 0.006 |
+
+Other measurements:
+
+- Shapes as expected: `[1, 16, 30, 40, 2048]` vs `[1, 2, 30, 40, 2048]`;
+  same sigma (68.3) in both runs; no NaN in any condition.
+- Without future positions the observed tokens themselves change a lot:
+  relative L2 0.79, cosine 0.67 to the same tokens in the full run. Inside
+  the video model the observed and future tokens mix heavily by layer 20.
+- The decoder's attention on the observed tokens is 14% (uniform would be
+  2400/19200 = 12.5%): it reads mostly the future positions.
+- The decoder's cross-attention has no positional encoding (RoPE only in its
+  self-attention), so dropping tokens does not shift any positions; the
+  19200-token controls rule out the token count as the cause.
+
+**What this means.**
+1. The decoder takes almost everything it uses from the future positions:
+   dropping the observed tokens changes the action by 5%, dropping the
+   future ones by 29–38%.
+2. Every way of removing the future (before or after the video model, with
+   or without restoring the token count) gives a near-static policy:
+   translation falls from 0.069 to 0.004–0.027. The same symptom preceded
+   the closed-loop 0% of the task-mean condition.
+3. At `stop=1` the future positions are not a separate forecast that can be
+   switched off while perception stays. They are where the video model puts
+   its processed view of the observed frames and the prompt. In mimic-video
+   as deployed, "remove the forecast" and "remove perception" cannot be
+   separated by ablating context tokens, so Experiment 1's 0% does not show
+   that the decoder uses *predicted future* content.
+4. A test that can separate them has to vary how far the forecast is
+   generated (more denoising steps before the context is read, the
+   advisor's point 4 / Experiment 9), not which tokens are removed.
+
+Caveats: open loop on 16 clips with one fixed robot state; "near-static" is
+judged from the predicted translation, not from closed-loop success.
+
 ## Not yet done
 
 - [ ] **Confound not yet separated:** same as F1-VLA's copy of this
