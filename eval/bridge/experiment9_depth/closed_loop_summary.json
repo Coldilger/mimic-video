@@ -1,0 +1,188 @@
+[
+ {
+  "k": 0,
+  "latency_s": 0.82,
+  "n": 96,
+  "successes": 43,
+  "wilson95": [
+   0.35235593933641585,
+   0.5474854093599193
+  ],
+  "diff_vs_k1": -0.03125,
+  "diff_ci95": [
+   -0.10416666666666663,
+   0.03125
+  ],
+  "k1_only": 7,
+  "k_only": 4,
+  "mcnemar_p": 0.548828125,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 9,
+   "PutEggplantInBasketScene-v0": 23,
+   "PutSpoonOnTableClothInScene-v0": 8,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 3
+  },
+  "flags": {
+   "moved_correct_obj": 63,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 63,
+   "consecutive_grasp": 60,
+   "src_on_target": 43
+  }
+ },
+ {
+  "k": 1,
+  "latency_s": 1.36,
+  "n": 96,
+  "successes": 46,
+  "wilson95": [
+   0.3819724566925992,
+   0.577964082785935
+  ],
+  "diff_vs_k1": 0.0,
+  "diff_ci95": [
+   0.0,
+   0.0
+  ],
+  "k1_only": 0,
+  "k_only": 0,
+  "mcnemar_p": 1.0,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 9,
+   "PutEggplantInBasketScene-v0": 21,
+   "PutSpoonOnTableClothInScene-v0": 12,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 4
+  },
+  "flags": {
+   "moved_correct_obj": 64,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 61,
+   "consecutive_grasp": 60,
+   "src_on_target": 46
+  }
+ },
+ {
+  "k": 2,
+  "latency_s": 1.89,
+  "n": 96,
+  "successes": 47,
+  "wilson95": [
+   0.39192689394846364,
+   0.5880413757908035
+  ],
+  "diff_vs_k1": 0.01041666666666663,
+  "diff_ci95": [
+   -0.041666666666666685,
+   0.0625
+  ],
+  "k1_only": 3,
+  "k_only": 4,
+  "mcnemar_p": 1.0,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 9,
+   "PutEggplantInBasketScene-v0": 23,
+   "PutSpoonOnTableClothInScene-v0": 11,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 4
+  },
+  "flags": {
+   "moved_correct_obj": 65,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 66,
+   "consecutive_grasp": 64,
+   "src_on_target": 47
+  }
+ },
+ {
+  "k": 4,
+  "latency_s": 2.95,
+  "n": 96,
+  "successes": 41,
+  "wilson95": [
+   0.33281921379650237,
+   0.5269586743783666
+  ],
+  "diff_vs_k1": -0.05208333333333337,
+  "diff_ci95": [
+   -0.125,
+   0.020833333333333315
+  ],
+  "k1_only": 9,
+  "k_only": 4,
+  "mcnemar_p": 0.266845703125,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 9,
+   "PutEggplantInBasketScene-v0": 16,
+   "PutSpoonOnTableClothInScene-v0": 12,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 4
+  },
+  "flags": {
+   "moved_correct_obj": 59,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 60,
+   "consecutive_grasp": 56,
+   "src_on_target": 41
+  }
+ },
+ {
+  "k": 8,
+  "latency_s": 5.09,
+  "n": 96,
+  "successes": 30,
+  "wilson95": [
+   0.22850817977225668,
+   0.41092067553454936
+  ],
+  "diff_vs_k1": -0.16666666666666669,
+  "diff_ci95": [
+   -0.2604166666666667,
+   -0.07291666666666663
+  ],
+  "k1_only": 27,
+  "k_only": 11,
+  "mcnemar_p": 0.013852965261321515,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 13,
+   "PutEggplantInBasketScene-v0": 3,
+   "PutSpoonOnTableClothInScene-v0": 8,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 6
+  },
+  "flags": {
+   "moved_correct_obj": 44,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 49,
+   "consecutive_grasp": 41,
+   "src_on_target": 30
+  }
+ },
+ {
+  "k": 16,
+  "latency_s": 9.3,
+  "n": 96,
+  "successes": 9,
+  "wilson95": [
+   0.050107540469390296,
+   0.16865497936202267
+  ],
+  "diff_vs_k1": -0.3854166666666667,
+  "diff_ci95": [
+   -0.4791666666666667,
+   -0.2916666666666667
+  ],
+  "k1_only": 40,
+  "k_only": 3,
+  "mcnemar_p": 3.0213413992896676e-09,
+  "per_task": {
+   "PutCarrotOnPlateInScene-v0": 3,
+   "PutEggplantInBasketScene-v0": 1,
+   "PutSpoonOnTableClothInScene-v0": 3,
+   "StackGreenCubeOnYellowCubeBakedTexInScene-v0": 2
+  },
+  "flags": {
+   "moved_correct_obj": 35,
+   "moved_wrong_obj": 0,
+   "is_src_obj_grasped": 28,
+   "consecutive_grasp": 22,
+   "src_on_target": 9
+  }
+ }
+]
