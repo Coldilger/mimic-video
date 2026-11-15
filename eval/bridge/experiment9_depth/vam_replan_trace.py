@@ -14,7 +14,7 @@ plan step ahead of where the arm currently is.
     the arm's speed can be compared between replanning rates;
   * optional `LEAD=n`: the plan returned by the model is shifted by n steps
     before it is used, so plan index 0 holds the pose originally at index n
-    (the gripper channel is not shifted). With `num_execute_actions=1` and
+    (the gripper channel is shifted too only with `LEAD_GRIPPER=1`). With `num_execute_actions=1` and
     `LEAD=2` the policy still replans at every step but commands a target
     three plan steps ahead — the average lead of the deployed setting
     (5 executed actions: indices 0..4).
@@ -33,10 +33,11 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 
 class LeadShiftPipeline(torch.nn.Module):
-    def __init__(self, pipeline, lead: int):
+    def __init__(self, pipeline, lead: int, shift_gripper: bool = False):
         super().__init__()
         self.pipeline = pipeline
         self.lead = lead
+        self.dims = 10 if shift_gripper else 9
 
     def forward(self, **kwargs):
         actions = self.pipeline(**kwargs)  # (1, H, 10): pos 3, rot6d 6, gripper 1
@@ -44,8 +45,8 @@ class LeadShiftPipeline(torch.nn.Module):
             return actions
         shifted = actions.clone()
         n = actions.shape[1] - self.lead
-        shifted[:, :n, :9] = actions[:, self.lead :, :9]
-        shifted[:, n:, :9] = actions[:, -1:, :9]
+        shifted[:, :n, : self.dims] = actions[:, self.lead :, : self.dims]
+        shifted[:, n:, : self.dims] = actions[:, -1:, : self.dims]
         return shifted
 
 
@@ -55,12 +56,12 @@ class VAMReplanTrace(VAMInference):
         super().__init__(*args, **kwargs)
         lead = int(os.environ.get("LEAD", "0"))
         if lead:
-            self.model = LeadShiftPipeline(self.model, lead).cuda()
+            self.model = LeadShiftPipeline(self.model, lead, os.environ.get("LEAD_GRIPPER", "0") == "1").cuda()
         out = HERE / "traces"
         out.mkdir(exist_ok=True)
         self._trace = open(out / f"{os.environ['TRACE_NAME']}.jsonl", "w")
         self._episode = -1
-        print(f"[trace] lead={lead} exec={self.num_execute_actions}", flush=True)
+        print(f"[trace] lead={lead} gripper_shift={os.environ.get('LEAD_GRIPPER', '0')} exec={self.num_execute_actions}", flush=True)
 
     def reset(self, task_description):
         super().reset(task_description)

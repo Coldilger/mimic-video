@@ -5,3 +5,7 @@ exec1_lead2 PutCarrotOnPlateInScene-v0 767065
 exec1_lead2 PutEggplantInBasketScene-v0 767066
 exec1_lead2 PutSpoonOnTableClothInScene-v0 767067
 exec1_lead2 StackGreenCubeOnYellowCubeBakedTexInScene-v0 767068
+exec1_lead4_gripper PutCarrotOnPlateInScene-v0 767103
+exec1_lead4_gripper PutEggplantInBasketScene-v0 767104
+exec1_lead4_gripper PutSpoonOnTableClothInScene-v0 767105
+exec1_lead4_gripper StackGreenCubeOnYellowCubeBakedTexInScene-v0 767106

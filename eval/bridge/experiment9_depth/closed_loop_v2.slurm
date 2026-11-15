@@ -22,7 +22,7 @@ set -u
 : "${STOP:?set STOP}"
 CONDITION="${CONDITION:-baseline}"; EXEC="${EXEC:-5}"; EP_START="${EP_START:-0}"; EP_END="${EP_END:-24}"
 export CONDITION
-export LEAD="${LEAD:-0}" TRACE_NAME="${TAG}_${TASK}_ep${EP_START}-${EP_END}"
+export LEAD="${LEAD:-0}" LEAD_GRIPPER="${LEAD_GRIPPER:-0}" TRACE_NAME="${TAG}_${TASK}_ep${EP_START}-${EP_END}"
 
 LIB_DIR="/mnt/beegfsnew/scratch/3295540/local_libs"
 mkdir -p "$LIB_DIR"
@@ -82,4 +82,4 @@ VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
   --vam-lowdim-horizon 1 \
   --vam-stop-video-denoising-step "$STOP"
 
-echo "EVAL_EXIT=$? TASK=$TASK STOP=$STOP TAG=$TAG CONDITION=$CONDITION EXEC=$EXEC EP=$EP_START-$EP_END VIDEO_SEEDS=${VIDEO_SEEDS:-} LEAD=$LEAD"
+echo "EVAL_EXIT=$? TASK=$TASK STOP=$STOP TAG=$TAG CONDITION=$CONDITION EXEC=$EXEC EP=$EP_START-$EP_END VIDEO_SEEDS=${VIDEO_SEEDS:-} LEAD=$LEAD LEAD_GRIPPER=$LEAD_GRIPPER"
