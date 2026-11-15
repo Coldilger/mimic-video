@@ -12,7 +12,8 @@
 #SBATCH --output=/home/3295540/mimic-video/eval/bridge/experiment9_depth/cl2-%j.out
 
 # Required env vars: TASK, STOP, TAG (save tag, must contain "seed0" for pairing).
-# Optional: CONDITION (baseline|seedavg, default baseline), VIDEO_SEEDS (seedavg),
+# Optional: CONDITION (baseline|seedavg|trace, default baseline), VIDEO_SEEDS (seedavg),
+# LEAD (trace: shift the plan by n steps, default 0),
 # EXEC (actions executed per decision, default 5), EP_START/EP_END (default 0 24).
 
 set -u
@@ -21,6 +22,7 @@ set -u
 : "${STOP:?set STOP}"
 CONDITION="${CONDITION:-baseline}"; EXEC="${EXEC:-5}"; EP_START="${EP_START:-0}"; EP_END="${EP_END:-24}"
 export CONDITION
+export LEAD="${LEAD:-0}" TRACE_NAME="${TAG}_${TASK}_ep${EP_START}-${EP_END}"
 
 LIB_DIR="/mnt/beegfsnew/scratch/3295540/local_libs"
 mkdir -p "$LIB_DIR"
@@ -80,4 +82,4 @@ VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
   --vam-lowdim-horizon 1 \
   --vam-stop-video-denoising-step "$STOP"
 
-echo "EVAL_EXIT=$? TASK=$TASK STOP=$STOP TAG=$TAG CONDITION=$CONDITION EXEC=$EXEC EP=$EP_START-$EP_END VIDEO_SEEDS=${VIDEO_SEEDS:-}"
+echo "EVAL_EXIT=$? TASK=$TASK STOP=$STOP TAG=$TAG CONDITION=$CONDITION EXEC=$EXEC EP=$EP_START-$EP_END VIDEO_SEEDS=${VIDEO_SEEDS:-} LEAD=$LEAD"

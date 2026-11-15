@@ -1,0 +1,7 @@
+trace_exec1 PutCarrotOnPlateInScene-v0 ep0-6 767062
+trace_exec2 PutCarrotOnPlateInScene-v0 ep0-6 767063
+trace_exec5 PutCarrotOnPlateInScene-v0 ep0-6 767064
+exec1_lead2 PutCarrotOnPlateInScene-v0 767065
+exec1_lead2 PutEggplantInBasketScene-v0 767066
+exec1_lead2 PutSpoonOnTableClothInScene-v0 767067
+exec1_lead2 StackGreenCubeOnYellowCubeBakedTexInScene-v0 767068

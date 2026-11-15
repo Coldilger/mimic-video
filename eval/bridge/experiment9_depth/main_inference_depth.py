@@ -1,6 +1,7 @@
 """Closed-loop entry point for Experiment 9. CONDITION environment variable:
 baseline (the production policy; depth and replanning come from the usual
---vam-* flags) | seedavg (see vam_depth_inference.py, needs VIDEO_SEEDS).
+--vam-* flags) | seedavg (see vam_depth_inference.py, needs VIDEO_SEEDS) | trace (see
+vam_replan_trace.py, needs TRACE_NAME, optional LEAD).
 Mirrors SimplerEnv/simpler_env/main_inference.py.
 """
 
@@ -27,6 +28,8 @@ if __name__ == "__main__":
         cls = lambda *a: VAMInference(*a, is_hil=False)  # noqa: E731
     elif condition == "seedavg":
         from vam_depth_inference import VAMSeedAverageInference as cls
+    elif condition == "trace":
+        from vam_replan_trace import VAMReplanTrace as cls
     else:
         raise SystemExit(f"unknown CONDITION: {condition}")
     model = cls(
