@@ -164,6 +164,51 @@ Per task (successes of 24):
    (9 → 13, single task, not tested on its own). With 24 episodes per task
    these per-task differences are suggestive only.
 
+## Closed loop, part 2: seed averaging and replanning rate (2026-11-15)
+
+**Setup.** `closed_loop_v2.slurm` + `main_inference_depth.py` /
+`vam_depth_inference.py` (jobs in `jobs_v2.txt`, 20 jobs, all `EVAL_EXIT=0`),
+same 4 tasks × 24 episodes, paired with the `k=1` baseline.
+
+- **Seed averaging at `k=16`** (`SeedAveragePipeline`): at every decision the
+  video model runs with seeds 0–3, the decoder (seed 0) produces one action
+  chunk per imagined future, and the four chunks are averaged. Perception,
+  depth and the context layout are unchanged; only the commitment to one
+  imagined future is removed. Smoke check: with the single seed 0 at `k=1`
+  the wrapper reproduces the baseline outcomes on the 2 episodes tried.
+- **Replanning rate at `k=1`**: `--vam-num-execute-actions` ∈ {1, 2, 10}
+  (deployed: 5) of the 15 planned actions are executed before the next call.
+
+| condition | success | Wilson 95% | paired diff vs `k=1`, exec 5 [95% CI] | McNemar p | moved correct object | grasped |
+|---|---|---|---|---|---|---|
+| `k=1`, exec 5 (deployed) | 46/96 = 47.9% | [38.2, 57.8] | — | — | 64/96 | 61/96 |
+| `k=16`, one seed | 9/96 = 9.4% | [5.0, 16.9] | −38.5 pp [−47.9, −29.2] | <0.0001 | 35/96 | 28/96 |
+| `k=16`, mean of 4 seeds | 47/96 = 49.0% | [39.2, 58.8] | +1.0 pp [−10.4, +12.5] | 1.00 | 68/96 | 66/96 |
+| `k=1`, exec 10 | 38/96 = 39.6% | [30.4, 49.6] | −8.3 pp [−17.7, +1.0] | 0.15 | 65/96 | 57/96 |
+| `k=1`, exec 2 | 0/96 | [0.0, 3.8] | −47.9 pp | <0.0001 | 7/96 | 1/96 |
+| `k=1`, exec 1 | 0/96 | [0.0, 3.8] | −47.9 pp | <0.0001 | 1/96 | 0/96 |
+
+Seed averaging against the single seed at `k=16`: +39.6 pp [+29.2, +50.0],
+43 episodes gained, 5 lost, p < 0.0001. Per task (Carrot / Eggplant / Spoon /
+Stack): 14 / 20 / 6 / 7 averaged, 3 / 1 / 3 / 2 single seed, 9 / 21 / 12 / 4
+deployed; exec 10: 8 / 11 / 16 / 3.
+
+1. **Averaging over imagined futures restores success at `k=16`.** This
+   favours cause (a) above: the single-seed collapse comes from the decoder
+   committing to one specific imagined future, not from the deep context
+   being an input the decoder cannot handle (the mismatch (b) is still
+   present in every one of the four calls). It does not show that a deep
+   forecast *helps*: four deep forecasts (~4 × 9.3 s per decision) only get
+   back to what `k=1` gives in 1.4 s. Limits: 4 seeds, one decoder seed; the
+   average of four chunks is itself an action the decoder never output.
+2. **Executing more of the plan (10 of 15) is not significantly worse**
+   overall (CI contains 0); Eggplant drops 21 → 11, Spoon rises 12 → 16.
+3. **Exec 1 and 2 give 0/96 — unexplained, do not interpret yet.** The robot
+   does move (checked on one Carrot video) but almost never moves or grasps
+   the object. Whether this is a property of the policy or of how
+   `video_action_model.py` turns the first one or two planned poses into
+   controller commands has not been checked.
+
 **Forecast detail is not varied for mimic-video (scope decision,
 2026-11-15).** The advisor's point 4 also asks to vary the forecast's level
 of detail. mimic-video has no such setting: the video resolution is fixed

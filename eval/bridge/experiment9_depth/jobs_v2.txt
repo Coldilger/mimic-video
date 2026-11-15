@@ -1,0 +1,20 @@
+seedavg4_k16 PutEggplantInBasketScene-v0 ep0-12 766437
+seedavg4_k16 PutEggplantInBasketScene-v0 ep12-24 766438
+seedavg4_k16 PutCarrotOnPlateInScene-v0 ep0-12 766439
+seedavg4_k16 PutCarrotOnPlateInScene-v0 ep12-24 766440
+seedavg4_k16 PutSpoonOnTableClothInScene-v0 ep0-12 766441
+seedavg4_k16 PutSpoonOnTableClothInScene-v0 ep12-24 766442
+seedavg4_k16 StackGreenCubeOnYellowCubeBakedTexInScene-v0 ep0-12 766443
+seedavg4_k16 StackGreenCubeOnYellowCubeBakedTexInScene-v0 ep12-24 766444
+exec1 PutEggplantInBasketScene-v0 766445
+exec1 PutCarrotOnPlateInScene-v0 766446
+exec1 PutSpoonOnTableClothInScene-v0 766447
+exec1 StackGreenCubeOnYellowCubeBakedTexInScene-v0 766448
+exec2 PutEggplantInBasketScene-v0 766449
+exec2 PutCarrotOnPlateInScene-v0 766450
+exec2 PutSpoonOnTableClothInScene-v0 766451
+exec2 StackGreenCubeOnYellowCubeBakedTexInScene-v0 766452
+exec10 PutEggplantInBasketScene-v0 766453
+exec10 PutCarrotOnPlateInScene-v0 766454
+exec10 PutSpoonOnTableClothInScene-v0 766455
+exec10 StackGreenCubeOnYellowCubeBakedTexInScene-v0 766456
