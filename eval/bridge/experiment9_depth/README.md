@@ -164,6 +164,19 @@ Per task (successes of 24):
    (9 → 13, single task, not tested on its own). With 24 episodes per task
    these per-task differences are suggestive only.
 
+**Forecast detail is not varied for mimic-video (scope decision,
+2026-11-15).** The advisor's point 4 also asks to vary the forecast's level
+of detail. mimic-video has no such setting: the video resolution is fixed
+in code (`model/cosmos_predict2/pipelines/video2world.py`,
+`assert self.config.resolution == "480"`), the clip length is fixed by the
+tokenizer, and the decoder was trained on a context of exactly that size
+(19,200 tokens). A lower resolution or a shorter clip changes the number and
+positions of the context tokens, so a drop in success could not be told
+apart from the decoder simply receiving an input layout it never saw — the
+same confound as token removal in F1-VLA's Experiment 1. The denoising depth
+`k` is mimic-video's native "how much forecast to compute" control and is
+the one varied here.
+
 **Limits.** One decoder seed; 96 episodes; latency measured open loop on
 H100 (the jobs ran mostly on H200). Because the simulator waits for the
 model, the real-robot cost of deep `k` would be larger than shown here: a
