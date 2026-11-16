@@ -164,7 +164,7 @@ Per task (successes of 24):
    (9 → 13, single task, not tested on its own). With 24 episodes per task
    these per-task differences are suggestive only.
 
-## Closed loop, part 2: seed averaging and replanning rate (2026-11-15)
+## Closed loop, part 2: seed averaging and replanning rate (2026-11-15, diagnostic 2026-11-16)
 
 **Setup.** `closed_loop_v2.slurm` + `main_inference_depth.py` /
 `vam_depth_inference.py` (jobs in `jobs_v2.txt`, 20 jobs, all `EVAL_EXIT=0`),
@@ -203,11 +203,59 @@ deployed; exec 10: 8 / 11 / 16 / 3.
    average of four chunks is itself an action the decoder never output.
 2. **Executing more of the plan (10 of 15) is not significantly worse**
    overall (CI contains 0); Eggplant drops 21 → 11, Spoon rises 12 → 16.
-3. **Exec 1 and 2 give 0/96 — unexplained, do not interpret yet.** The robot
-   does move (checked on one Carrot video) but almost never moves or grasps
-   the object. Whether this is a property of the policy or of how
-   `video_action_model.py` turns the first one or two planned poses into
-   controller commands has not been checked.
+3. **Exec 1 and 2 give 0/96 because the first steps of the plan do not
+   contain the grasp** — see the diagnostic below.
+
+### Why executing 1–2 planned actions gives 0/96 (diagnostic, 2026-11-16)
+
+**Step 1 — per-step traces.** `CONDITION=trace` (`vam_replan_trace.py`,
+`VAMReplanTrace`) writes, at every control step, the observed end-effector
+pose, the commanded target and the gripper command to `traces/*.jsonl`;
+`analyze_replan_trace.py` summarises them. Carrot, 6 episodes each:
+
+| actions executed per decision | arm speed (cm/step) | path per episode (cm) | gripper-close commands |
+|---|---|---|---|
+| 1 | 0.24 | 14.4 | 0% |
+| 2 | 0.53 | 31.5 | 3% |
+| 5 (deployed) | 0.66 | 39.2 | 17% |
+
+In the deployed setting the share of "close" commands by position in the
+executed part of the plan is 0.07 / 0.10 / 0.08 / 0.25 / 0.35 (plan steps
+1–5). The first planned step almost never closes the gripper and moves the
+arm about a third as fast; a controller that only ever executes step 1
+lowers the arm (min z 0.020 m) and hovers.
+
+**Step 2 — shift the plan.** `LeadShiftPipeline` still replans at every
+control step but executes a later step of the plan instead of the first
+(`LEAD`, optionally also for the gripper dimension with `LEAD_GRIPPER=1`).
+96 episodes, paired with the deployed `k=1`, exec 5 baseline (jobs in
+`jobs_v3.txt`, all `EVAL_EXIT=0`):
+
+| condition (replanning at every step) | success | paired diff vs deployed [95% CI] | McNemar p | grasped | moved correct object | gripper-close commands (per task) |
+|---|---|---|---|---|---|---|
+| execute plan step 1 (exec 1) | 0/96 | −47.9 pp [−56.2, −39.6] | <0.0001 | 0/96 | 1/96 | 0% (Carrot trace) |
+| execute pose of step 3, gripper of step 1 (`LEAD=2`) | 2/96 | −45.8 pp [−55.2, −36.5] | <0.0001 | 15/96 | 21/96 | 1–13% |
+| execute pose and gripper of step 5 (`LEAD=4`, `LEAD_GRIPPER=1`) | 17/96 = 17.7% | −30.2 pp [−40.6, −19.8] | <0.0001 | 45/96 | 42/96 | 5–20% |
+| deployed (exec 5, replan every 5 steps) | 46/96 = 47.9% | — | — | 61/96 | 64/96 | 17% (Carrot trace) |
+
+Per task (Carrot / Eggplant / Spoon / Stack): step 5 with gripper
+4 / 11 / 2 / 0, deployed 9 / 21 / 12 / 4.
+
+- **The zero is produced by the gripper channel of the early plan steps.**
+  Shifting only the pose restores arm speed (0.3–0.8 cm/step) but not
+  grasping; shifting the gripper as well brings grasps from 0 to 45 of 96
+  (deployed: 61) and success from 0 to 17 of 96.
+- **It is not evidence that frequent replanning as such destroys the
+  policy,** and the exec 1 / exec 2 rows must not be read as a point on a
+  "replanning rate" curve: they test a regime in which the grasp part of
+  the plan is never executed.
+- **The recovery is partial and the rest is unexplained.** With the step-5
+  shift the arm travels 58 cm per episode on Carrot (deployed Carrot
+  trace, 6 episodes: 39 cm) for a similar net displacement, i.e. the motion
+  is less direct (other tasks: 67–105 cm, no deployed trace to compare). One candidate is that every call imagines a new future, so
+  consecutive commands are not consistent with each other; this was not
+  tested. Executing step 5 as a one-step target is also a regime the
+  decoder was not trained for.
 
 **Forecast detail is not varied for mimic-video (scope decision,
 2026-11-15).** The advisor's point 4 also asks to vary the forecast's level
