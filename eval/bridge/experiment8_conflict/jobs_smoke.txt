@@ -1,0 +1,3 @@
+MODE=probe Carrot ep0-2 776939
+MODE=cl OBS=A FUT=A Carrot ep0-2 776940
+MODE=cl OBS=A FUT=B Carrot ep0-2 776941
