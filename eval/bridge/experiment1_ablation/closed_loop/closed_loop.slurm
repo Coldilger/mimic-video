@@ -57,6 +57,19 @@ VIDEO_MODEL="${CKPT_DIR}/video_backbone/v2w_bridge_lora_rank256_lr1.778e-04_bsz6
 ACTION_MODEL="${CKPT_DIR}/action_decoder/w2a_bridge_v2w_bridge_lora_rank256_lr1.778e-04_bsz64_iter_000070043_fused_lr1.000e-04_layer20_bsz256_iter_000014112.pt"
 STATS="${CKPT_DIR}/dataset_statistics/bridge.json"
 
+# Experiment 11 (advisor's point 5): BACKBONE=pretrained swaps in the authors'
+# second released pair -- the generic Cosmos-Predict2 video model (never
+# finetuned to predict Bridge videos) and the action decoder they trained on
+# its layer-20 activations (same layer, lr, batch, 14,112 iterations). The
+# simulator protocol is unchanged; only the checkpoints and the save tag differ.
+BACKBONE_TAG=""
+if [ "${BACKBONE:-bridge}" = "pretrained" ]; then
+  EXPERIMENT_NAME="w2a_bridge_v2w_pretrained_cosmos_lr1.000e-04_layer20_bsz256"
+  VIDEO_MODEL="${CKPT_DIR}/video_backbone/v2w_pretrained_cosmos.pt"
+  ACTION_MODEL="${CKPT_DIR}/action_decoder/w2a_bridge_v2w_pretrained_cosmos_lr1.000e-04_layer20_bsz256_iter_000014112.pt"
+  BACKBONE_TAG="_pretrainedbackbone"
+fi
+
 case "$TASK" in
   PutCarrotOnPlateInScene-v0|PutSpoonOnTableClothInScene-v0|StackGreenCubeOnYellowCubeBakedTexInScene-v0)
     ROBOT=widowx
@@ -86,7 +99,7 @@ VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
   --rgb-overlay-path "$OVERLAY" \
   --robot-init-x $INIT_X $INIT_X 1 --robot-init-y $INIT_Y $INIT_Y 1 \
   --obj-variation-mode episode --obj-episode-range 0 24 \
-  --additional-env-save-tags "exp1_${CONDITION}_stop1_seed${SEED}" \
+  --additional-env-save-tags "exp1_${CONDITION}${BACKBONE_TAG}_stop1_seed${SEED}" \
   --robot-init-rot-quat-center 0 0 0 1 --robot-init-rot-rpy-range 0 0 1 0 0 1 0 0 1 \
   --vam-experiment-name "$EXPERIMENT_NAME" \
   --vam-video-model-path "$VIDEO_MODEL" \
@@ -97,4 +110,4 @@ VENV_PY=/home/3295540/mimic-video/model/.venv/bin/python3
   --vam-lowdim-horizon 1 \
   --vam-stop-video-denoising-step 1
 
-echo "EVAL_EXIT=$? TASK=$TASK SEED=$SEED CONDITION=$CONDITION"
+echo "EVAL_EXIT=$? TASK=$TASK SEED=$SEED CONDITION=$CONDITION BACKBONE=${BACKBONE:-bridge}"

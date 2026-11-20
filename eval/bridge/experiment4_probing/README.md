@@ -33,8 +33,9 @@ i.e. it measures "the arm barely moves" rather than representation quality.
 both models were finetuned on all of Bridge with no held-out split, so a
 single absolute probe score cannot be separated from memorization. The two
 released checkpoints differ *exactly* in the video backbone — generic Cosmos
-vs. Bridge-LoRA-finetuned — while both ship the same Bridge-trained action
-decoder, which this experiment never probes. So the comparison isolates what
+vs. Bridge-LoRA-finetuned — while each ships its own Bridge-trained action
+decoder (trained on that backbone's layer-20 activations; the two decoder
+files differ, checked 2026-11-20), which this experiment never probes. So the comparison isolates what
 Bridge finetuning built into the probed representation.
 
 Verified as a controlled comparison at full scale: targets identical,
