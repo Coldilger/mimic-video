@@ -49,8 +49,58 @@ future tokens.
   0.82–0.90 for all four alternative instructions, i.e. the action goes
   with the future tokens' prompt — the opposite of F1-VLA (0.01–0.02).
 
-## Results
+## Results (2026-11-20)
 
-Full runs submitted 2026-11-19 (probe, 4 tasks × 24 episodes; closed loop
-obs A/fut B, obs B/fut A, obs B/fut B with the mirrored instruction; the
-obs A/fut A cell is Experiment 1's `exp1_baseline_stop1_seed0`).
+16 jobs, all `EVAL_EXIT=0`. Tables from `analyze_conflict.py`.
+
+### Single decisions (1,440 decisions on states of the deployed rollout, 4 tasks × 24 episodes)
+
+Noise floor (video seed 1 vs 0, same prompt): the future tokens change by
+105% (relative L2) and the observed tokens by 12%, the action by
+0.036–0.091. Prompt A vs. B (mean over the four tasks; per task and per
+alternative in `analyze_conflict.py`):
+
+| B | context change observed / future | d(BB, AA) | d(AB, AA) | d(BA, BB) | follow(AB) | follow(BA) |
+|---|---|---|---|---|---|---|
+| mirror (both objects present) | 0.08–0.17 / 0.25–0.37 | 0.17–0.27 | 0.17–0.27 | 0.17–0.27 | 0.86–0.92 | 0.86–0.93 |
+| other three tasks' instructions | 0.07–0.11 / 0.20–0.30 | 0.07–0.23 | 0.06–0.23 | 0.06–0.23 | 0.79–0.93 | 0.80–0.94 |
+
+Swapping in the future tokens of the other prompt moves the action almost
+all the way to where the other prompt sends it (follow 0.79–0.93 in all 16
+pairs, both directions); the observed-frame tokens carry the rest.
+
+### Closed loop (mirrored instruction, 96 episodes per cell)
+
+| observed tokens from | future tokens from | success (task A) | moved A's object | moved the other object | grasped A's object |
+|---|---|---|---|---|---|
+| A | A (= deployed, Exp 1 baseline) | 46/96 | 64/96 | 0/96 | 61/96 |
+| A | B | 0/96 | 0/96 | 20/96 | 0/96 |
+| B | A | 48/96 | 69/96 | 0/96 | 68/96 |
+| B | B | 0/96 | 0/96 | 18/96 | 0/96 |
+
+Paired: obs A/fut A → obs A/fut B −47.9 pp [−56.2, −39.6], p < 0.0001;
+obs B/fut B → obs B/fut A +50.0 pp [+42.7, +57.3], p < 0.0001. Per task
+(success / moved A's object / moved the other, of 24): obs A/fut B Carrot
+0/0/0, Eggplant 0/0/0, Spoon 0/0/4, Stack 0/0/16; obs B/fut B Spoon 0/0/3,
+Stack 0/0/15; obs B/fut A Carrot 9/11/0, Eggplant 24/24/0, Spoon 13/15/0,
+Stack 2/19/0.
+
+**What this shows.**
+1. **mimic-video's action follows the instruction carried by the imagined
+   future.** With the future tokens of the mirrored prompt the robot never
+   completes A and, on Stack, moves the other cube in 16/24 episodes —
+   the same as when the whole context comes from B (15/24). With the
+   future of A and the observed-frame tokens of B it completes A as often
+   as the deployed policy (48 vs 46/96).
+2. This is the opposite of F1-VLA, where a forecast made under another
+   instruction moves the action no more than noise (follow 0.01–0.02,
+   closed loop unchanged).
+3. **Caveat (same as Experiment 1).** At the deployed operating point the
+   future tokens are the decoder's main view of the scene as well as of
+   the future; the swap moves "where the video model thinks the episode is
+   going", which includes its reading of the instruction. It shows that
+   the instruction reaches the action through the future-frame part of the
+   context, not that a *predicted future* is what the decoder uses.
+4. Under the mirrored instruction alone (B/B) the robot fails A everywhere
+   but only reaches the other object on Stack and Spoon; on Carrot and
+   Eggplant the other object is the plate / basket, which it never moves.
