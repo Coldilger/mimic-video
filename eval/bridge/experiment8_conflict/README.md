@@ -101,6 +101,18 @@ Stack 2/19/0.
    going", which includes its reading of the instruction. It shows that
    the instruction reaches the action through the future-frame part of the
    context, not that a *predicted future* is what the decoder uses.
-4. Under the mirrored instruction alone (B/B) the robot fails A everywhere
+4. **Splice check (2026-11-20, from the 1,440 probe records).** The
+   split is by token position; each run (A, B) is computed by the video
+   model on its own and only the decoder sees the spliced sequence. The
+   spliced actions coincide with the unspliced action of the future
+   tokens' prompt: median d(AB, BB) = 0.008 and d(BA, AA) = 0.008, against
+   d(BB, AA) = 0.118 and the seed noise floor d(AA2, AA) = 0.032. An
+   incoherent ("mushed") context would land far from both. Together with
+   the closed-loop B/A cell (48/96, as deployed) this rules out the splice
+   itself as the cause of the 0/96. It matches Experiment 1
+   (`../experiment1_ablation/README.md`, "Can the future be removed while
+   keeping perception?"): the decoder puts 14% of its attention on the
+   observed-frame tokens, and dropping them changes the action by 5%.
+5. Under the mirrored instruction alone (B/B) the robot fails A everywhere
    but only reaches the other object on Stack and Spoon; on Carrot and
    Eggplant the other object is the plate / basket, which it never moves.
