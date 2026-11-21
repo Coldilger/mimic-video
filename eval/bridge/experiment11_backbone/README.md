@@ -51,6 +51,37 @@ mimic-video is deterministic (fixed seed 0), so 96 episodes, paired episode by
 episode with `exp1_baseline_stop1_seed0` (`../paired_stats.py`). Jobs
 781201–781204 (`../experiment1_ablation/closed_loop/jobs_exp11_pretrained.txt`).
 
-## Results
+## Results (2026-11-21)
 
-Pending.
+Jobs 781282–781285 (H100 copies of 781201–781204), all `EVAL_EXIT=0`; log
+confirms the generic-Cosmos video model and its decoder were loaded.
+`python analyze_exp11.py` (writes `exp11_summary.json`).
+
+| pair | success | diff vs deployed [95% CI] | McNemar p | lost / gained |
+|---|---|---|---|---|
+| deployed (Bridge video finetune) | 46/96 | — | — | — |
+| generic Cosmos backbone | **1/96** | −46.9 pp [−55.2, −38.5] | 6e-14 | 45 / 0 |
+
+| task | deployed | generic | grasped the object (deployed / generic) |
+|---|---|---|---|
+| Carrot | 9/24 | 1/24 | 9 / 7 |
+| Eggplant | 21/24 | 0/24 | 21 / 0 |
+| Spoon | 12/24 | 0/24 | 13 / 3 |
+| Stack | 4/24 | 0/24 | 18 / 1 |
+
+**What this shows.**
+1. Without the Bridge video-prediction finetune, the same decoder recipe
+   gives an almost useless policy (1/96, it grasps the object in 11/96
+   episodes against 61/96). For mimic-video the video model finetuned on
+   Bridge videos is necessary for acting.
+2. **Caveat: this is not yet "forecasting vs. no forecasting".** The Bridge
+   finetune is also the only place where the video model sees Bridge images
+   at all; it adapts the model to the domain (camera, scenes, robot) and to
+   forecasting at once. The comparison shows that this stage is needed, not
+   which of the two it supplies. Separating them needs the video model's
+   LoRA trained on Bridge with the action loss only (end to end through the
+   decoder), which mimic-video's training code does not support (see "What
+   this does not cover").
+3. Both pairs run at the same operating point (stop = 1 of 35). It was
+   chosen for the deployed pair; another operating point was not tried for
+   the generic pair.

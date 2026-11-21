@@ -1,0 +1,93 @@
+{
+ "n": 96,
+ "deployed": 46,
+ "generic": 1,
+ "diff": -0.46875,
+ "diff_ci95": [
+  -0.5520833333333334,
+  -0.38541666666666663
+ ],
+ "mcnemar_p": 5.684341886080802e-14,
+ "lost_gained": [
+  45,
+  0
+ ],
+ "per_task": {
+  "PutCarrotOnPlateInScene-v0": {
+   "deployed": 9,
+   "generic": 1,
+   "n": 24,
+   "flags_deployed": {
+    "moved_correct_obj": 10,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 9,
+    "consecutive_grasp": 9,
+    "src_on_target": 9
+   },
+   "flags_generic": {
+    "moved_correct_obj": 6,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 7,
+    "consecutive_grasp": 6,
+    "src_on_target": 1
+   }
+  },
+  "PutEggplantInBasketScene-v0": {
+   "deployed": 21,
+   "generic": 0,
+   "n": 24,
+   "flags_deployed": {
+    "moved_correct_obj": 22,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 21,
+    "consecutive_grasp": 21,
+    "src_on_target": 21
+   },
+   "flags_generic": {
+    "moved_correct_obj": 3,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 0,
+    "consecutive_grasp": 0,
+    "src_on_target": 0
+   }
+  },
+  "PutSpoonOnTableClothInScene-v0": {
+   "deployed": 12,
+   "generic": 0,
+   "n": 24,
+   "flags_deployed": {
+    "moved_correct_obj": 14,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 13,
+    "consecutive_grasp": 12,
+    "src_on_target": 12
+   },
+   "flags_generic": {
+    "moved_correct_obj": 4,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 3,
+    "consecutive_grasp": 2,
+    "src_on_target": 0
+   }
+  },
+  "StackGreenCubeOnYellowCubeBakedTexInScene-v0": {
+   "deployed": 4,
+   "generic": 0,
+   "n": 24,
+   "flags_deployed": {
+    "moved_correct_obj": 18,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 18,
+    "consecutive_grasp": 18,
+    "src_on_target": 4
+   },
+   "flags_generic": {
+    "moved_correct_obj": 1,
+    "moved_wrong_obj": 0,
+    "is_src_obj_grasped": 1,
+    "consecutive_grasp": 1,
+    "src_on_target": 0
+   }
+  }
+ }
+}
