@@ -88,3 +88,15 @@ LDA-1B forks, each with a model-specific implementation.
   doesn't improve after erasure. Level B (causal downstream re-injection)
   not started, scoped pending an extraction change that makes pose linearly
   recoverable at all. See `experiment5_erasure/README.md`.
+
+## Experiment 12 — Bridge pipeline audit (2026-11-22)
+
+Shared audit of the three models' Bridge data:
+`LDA-1B/eval/bridge/experiment12_audit/README.md`. mimic-video is
+consistent between training and SimplerEnv: it trains on the raw Bridge
+`eef_transform` pose, which is the simulator's tool convention (authors'
+`data_preprocessing/action/process_bridge.py` docstring), receives the
+rotation as matrix rows (no Euler conversion), and uses 480×640 frames and
+a 5-frame history at 5 Hz both in training and at evaluation. The other two
+models' wrappers do not convert the simulator pose to Bridge's convention
+(LDA-1B: actions affected; F1-VLA: rotation state only).
